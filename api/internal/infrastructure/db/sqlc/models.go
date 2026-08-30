@@ -47,6 +47,10 @@ type User struct {
 	PasswordHash string             `json:"password_hash"`
 	TotpSecret   string             `json:"totp_secret"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	NationalID   pgtype.Text        `json:"national_id"`
+	AccountType  string             `json:"account_type"`
+	Status       string             `json:"status"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type UserPasswordReset struct {

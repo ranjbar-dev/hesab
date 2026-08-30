@@ -6,11 +6,12 @@ import (
 	"hesab/api/internal/application/adminauth"
 	"hesab/api/internal/application/clientauth"
 	"hesab/api/internal/application/health"
+	"hesab/api/internal/application/usersadmin"
 	"hesab/api/internal/config"
 )
 
 // NewRouter builds the Gin engine with all HTTP routes registered.
-func NewRouter(healthSvc *health.Service, authSvc *adminauth.Service, tokens adminauth.TokenIssuer, clientSvc *clientauth.Service, clientTokens clientauth.TokenIssuer, cfg config.Config) *gin.Engine {
+func NewRouter(healthSvc *health.Service, authSvc *adminauth.Service, tokens adminauth.TokenIssuer, usersAdminSvc *usersadmin.Service, clientSvc *clientauth.Service, clientTokens clientauth.TokenIssuer, cfg config.Config) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(CORS(cfg.CORSOrigins))
@@ -31,6 +32,14 @@ func NewRouter(healthSvc *health.Service, authSvc *adminauth.Service, tokens adm
 	p := r.Group("/admin")
 	p.Use(AdminAuth(tokens))
 	{
+		ua := &usersAdminHandler{svc: usersAdminSvc}
+		p.GET("/users", ua.list)
+		p.POST("/users", ua.create)
+		p.GET("/users/:id", ua.get)
+		p.PATCH("/users/:id", ua.update)
+		p.POST("/users/:id/status", ua.setStatus)
+		p.POST("/users/:id/reset-password", ua.resetPassword)
+		p.DELETE("/users/:id", ua.remove)
 		p.GET("/me", a.me)
 		p.POST("/2fa/setup", a.setup)
 		p.POST("/2fa/activate", a.activate)

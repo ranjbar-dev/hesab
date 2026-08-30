@@ -22,7 +22,7 @@ func (q *Queries) ConsumeUserPasswordReset(ctx context.Context, id int64) error 
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (first_name, last_name, email, phone_number, password_hash, totp_secret)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at, national_id, account_type, status, deleted_at
 `
 
 type CreateUserParams struct {
@@ -53,6 +53,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.NationalID,
+		&i.AccountType,
+		&i.Status,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -76,7 +80,7 @@ func (q *Queries) GetLatestUserPasswordReset(ctx context.Context, userID int64) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at FROM users WHERE id = $1
+SELECT id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at, national_id, account_type, status, deleted_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -91,12 +95,16 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.NationalID,
+		&i.AccountType,
+		&i.Status,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getUserByPhone = `-- name: GetUserByPhone :one
-SELECT id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at FROM users WHERE phone_number = $1
+SELECT id, first_name, last_name, email, phone_number, password_hash, totp_secret, created_at, national_id, account_type, status, deleted_at FROM users WHERE phone_number = $1
 `
 
 func (q *Queries) GetUserByPhone(ctx context.Context, phoneNumber string) (User, error) {
@@ -111,6 +119,10 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phoneNumber string) (User,
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.NationalID,
+		&i.AccountType,
+		&i.Status,
+		&i.DeletedAt,
 	)
 	return i, err
 }
