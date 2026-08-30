@@ -52,8 +52,8 @@ jobs:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e rsync -az --delete \
-            --exclude '.git' --exclude '.github' --exclude 'node_modules' \
-            --exclude 'admin' --exclude 'client' --exclude '.env' \
+            --exclude '/.git' --exclude '/.github' --exclude 'node_modules' \
+            --exclude '/admin' --exclude '/client' --exclude '/.env' \
             -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
             ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/api/"
 
