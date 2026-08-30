@@ -176,6 +176,56 @@ related work.
   `core.autocrlf` on this box makes freshly written / `sqlc generate`d files
   show as modified with no content diff (LF→CRLF warnings on `git add`).
   `git checkout -- <path>` clears it; it is not a real change, don't commit it.
+- **2026-08-30 — Businesses & memberships.** `feat/businesses` added the
+  `businesses` (1:N `owner_user_id`), `business_members` (roles `owner` /
+  `admin` / `accountant` / `viewer`; owner also gets a member row) and
+  `business_invites` (`pending`/`accepted`/`rejected`/`cancelled`, partial
+  unique on pending) tables — migration `000004`. Client invites are by phone
+  and create a pending invite the invitee accepts on next login; admin adds
+  members immediately. `owner`+`admin` manage members; only `owner` (or
+  super-admin) soft-deletes a business. Client app is now business-scoped:
+  routes live under `/businesses/[id]/{dashboard,members,settings}`,
+  `/select-business` picks one (0 → empty state, exactly 1 → auto-enter, 2+ →
+  picker + invites inbox), the header `<select>` switches business by changing
+  the URL id only (nothing persisted). Codex delegation of a big multi-layer
+  task (API + both SPAs) came back complete and building first try when the
+  plan spelled out JSON shapes, error→HTTP mapping and the static-export
+  route pattern per page.
+- **2026-08-30 — Deploy: GitHub Actions to the Linux server.**
+  `.github/workflows/deploy.yml` fires on push to `main`, path-filtered
+  (`dorny/paths-filter`) into 4 independent jobs. `api` (also `db/**`,
+  `docker-compose.yml`): rsync the whole repo to `/opt/hesab/api` (excludes
+  `.git .github node_modules admin client .env`), `docker compose up -d
+  --build`. `admin` / `client`: `npm ci && npm run build` (static export),
+  rsync `out/` to `/opt/hesab/{admin,client}`. `nginx` (`deploy/nginx/**`):
+  see the conf.d bullet below. SSH is password auth via `sshpass -e`
+  (`StrictHostKeyChecking=no`). Prod domains: client `ranjbar.dev`, admin
+  `admin.ranjbar.dev`, api `api.ranjbar.dev` (nginx configs in
+  `deploy/nginx/*.conf`, HTTP-only, api one is a reverse proxy to
+  `127.0.0.1:8080`). 7 repo secrets: `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`,
+  `SSH_PORT`, `ENV_API` (full prod `.env`, lands at `/opt/hesab/api/.env`),
+  `ENV_ADMIN`, `ENV_CLIENT` (each just `NEXT_PUBLIC_API_URL=https://api.ranjbar.dev`,
+  written to `<app>/.env.production` before build). `ENV_API` must set
+  `CORS_ORIGINS=https://ranjbar.dev,https://admin.ranjbar.dev`,
+  `COOKIE_DOMAIN=.ranjbar.dev`, `COOKIE_SECURE=true`.
+- **2026-08-30 — Deploy: migration path on the server is doubled.**
+  The whole repo rsyncs *under* `/opt/hesab/api/`, so migrations end up at
+  `/opt/hesab/api/api/db/migration` (double `api`). The `api` job runs them
+  after `compose up` with the `migrate/migrate` Docker image,
+  `--network host`, DB URL built from the deployed `.env` by reading keys
+  individually (`grep -E '^POSTGRES_USER=' .env | cut -d= -f2-`) — do NOT
+  `source`/`.` the `.env`: `TOTP_ISSUER=Hesab Admin` has an unquoted space and
+  sourcing it runs `Admin` as a command. Seeding is not in CI (run
+  `cmd/seed` once by hand).
+- **2026-08-30 — Deploy: `/etc/nginx/conf.d/` is repo-managed and `--delete`d.**
+  The `nginx` job does `rsync -az --delete --rsync-path="sudo rsync"
+  deploy/nginx/ → /etc/nginx/conf.d/` then `sudo nginx -t && sudo systemctl
+  reload nginx`. Any `.conf` there NOT in `deploy/nginx/` is deleted (RHEL's
+  `default.conf`, certbot output). `SSH_USER` needs NOPASSWD sudo for `rsync`,
+  `nginx`, `systemctl reload nginx`. TLS is not wired — `certbot --nginx`
+  would write into these files and be wiped next deploy; use `--webroot` + a
+  separate non-managed include, or bake cert paths into the committed
+  `.conf` files.
 
 ## Current state (2026-08-30)
 
@@ -186,12 +236,17 @@ neither migrate nor the seeders.
 
 - `api` — Gin + pgxpool, DDD layers under `internal/`. Wired: `/health`,
   admin auth + 2FA (`/admin/auth/*`, `/admin/2fa/*`), client auth + 2FA
-  (`/client/auth/*`, `/client/2fa/*`), admin user management
-  (`/admin/users*`). Migrations `000001` admin_auth, `000002` client_auth,
-  `000003` users_admin. Fake fixed-code SMS (`123456`); sms.ir still a TODO.
-- `admin` — auth pages + `/settings/security` + `/users` (list/filter/create
-  modal) + `/users/[id]` (detail/edit/disable/reset-password/soft-delete),
-  all wired to the API cross-origin. `next build` static export clean.
-- `client` — auth pages wired to the API. Dashboard is still a stub.
+  (`/client/auth/*`, `/client/2fa/*`), admin user management (`/admin/users*`),
+  businesses + memberships + invites (`/admin/businesses*`,
+  `/admin/users/:id/businesses`, `/client/businesses*`, `/client/invites*`).
+  Migrations `000001` admin_auth, `000002` client_auth, `000003` users_admin,
+  `000004` businesses. Fake fixed-code SMS (`123456`); sms.ir still a TODO.
+- `admin` — auth pages + `/settings/security` + `/users` + `/users/[id]`
+  (now also lists the user's owned/joined businesses) + `/businesses`
+  (list/search/paginate/create) + `/businesses/[id]` (rename, members CRUD,
+  soft-delete), all wired cross-origin. `next build` static export clean.
+- `client` — auth pages + business-scoped app: `/select-business` picker,
+  `/businesses/new`, `/businesses/[id]/{dashboard,members,settings}` under a
+  shared `Shell` with a business switcher. Dashboard body is still a stub.
 - Seed users: admin `9370843199` / `Amir@Pass1999`; client `9120000000` /
   `Client@Pass1999`. No CI, no billing/subscription domain yet.

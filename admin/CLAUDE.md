@@ -21,4 +21,13 @@ tools. This file holds admin-specific rules and learnings.
 - **2026-08-30 — Toasts for feedback.** `sonner` `<Toaster>` lives in `app/layout.tsx` (`theme="dark"`, `richColors`, `dir="rtl"`, `position="top-center"`). Auth pages (`login`, `login/2fa`, `forgot-password`, `reset-password`, `settings/security`) show all validation / API errors and successes via `toast.error|success|info(...)`, not inline `<p>` message state. Keep new pages on the same pattern.
 - **2026-08-30 — Dynamic routes under `output: "export"`.** `dynamicParams: true` is forbidden with static export; a `[id]` route needs `dynamicParams = false` + a `generateStaticParams` that returns at least one placeholder (we return `[{id:"_"}]`, which emits `out/users/_.html`). The `page.tsx` stays a server component doing only that; the real screen is a sibling `"use client"` component it renders (`app/users/[id]/Detail.tsx`, reads `useParams()`). Client-side nav (`router.push("/users/5")`) works; deep-link / hard-refresh needs `admin/serve.json` (`{"rewrites":[{"source":"/users/:id","destination":"/users/_.html"}]}`) — the `start` script passes it with `serve -c ../serve.json`. Verify the rewrite when a real static host is set up.
 - **2026-08-30 — Jalali date input.** `jalaali-js` (~4 KB, zero deps) does the Jalali↔Gregorian conversion; `lib/jalali.ts` wraps it (`isoToJalaliLabel`, `jalaliDayRange`). The users-table date filter is three `<select>`s (year/month/day) that emit a UTC day range only once all three are set — no calendar-popover dependency. Persian digits via `toLocaleString("fa-IR")`; when parsing the current Jalali year force Latin digits (`nu-latn`) before `parseInt`.
+- **2026-08-30 — Businesses screens.** `/businesses` (name search + server
+  pagination + `<dialog>` create modal whose owner picker calls
+  `listUsers({phone})` and radio-selects when >1 match) and `/businesses/[id]`
+  (`page.tsx` static-params shim + `Detail.tsx`, same pattern as `/users/[id]`:
+  rename, members table with per-row role `<select>`/remove disabled on the
+  owner row, add-member-by-phone form, `confirm()`-gated soft-delete).
+  `/users/[id]/Detail.tsx` gained a «کسب‌وکارها» section (owned list + inline
+  add, joined list + remove) via `getUserBusinesses`. `lib/businesses.ts`
+  mirrors `lib/users.ts`. `serve.json` got the `/businesses/:id` rewrite.
 - **2026-08-30 — Users admin screens.** `/users` (list + per-column debounced filter row + native `<dialog>` create modal + server pagination) and `/users/[id]` (profile, inline edit, enable/disable, reset-password, `confirm()`-gated soft-delete). Talks to `/admin/users*` (see `api/CLAUDE.md`). Client dashboard users are keyed by phone (immutable after create); one active account per phone.

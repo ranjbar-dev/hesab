@@ -27,4 +27,24 @@ tools. This file holds api-specific rules and learnings.
 - **2026-08-30 — Cross-origin auth, not a proxy.** The SPAs call the API directly at `http://localhost:8080`; `CORS()` middleware echoes allowed `Origin` + `Allow-Credentials`. `COOKIE_SECURE=true` is mandatory (SameSite=None needs Secure; localhost is a secure context so it still works on http). A same-origin `/api` rewrite was tried and abandoned — `output: "export"` makes Next ignore `rewrites` even in `next dev`.
 - **2026-08-30 — No `make` on this Windows box.** `api/Makefile` exists but the `make` binary is not installed. Run the targets directly: `migrate -path db/migration -database "$DATABASE_URL" up`, `go run ./cmd/seed`, `go run ./cmd/server`. The golang-migrate CLI is at `~/go/bin/migrate`.
 - **2026-08-30 — gopls lags after new struct fields.** After adding fields to `config.Config`, the language server kept reporting `undefined: config.Config.<field>` while `go build ./...` was clean. `go build` / `go test` are the source of truth, not IDE diagnostics (same rule as the Next IDE-lag note in the root `CLAUDE.md`).
+- **2026-08-30 — Businesses & memberships.** `domain/business` (roles
+  `owner`/`admin`/`accountant`/`viewer`; `AssignableRole` excludes `owner`;
+  `CanManageMembers` = owner|admin) + `application/business` (client) +
+  `application/businessadmin` (admin) + `repo.BusinessRepo` /
+  `BusinessAdminRepo` (the admin repo delegates most methods to a throwaway
+  `&BusinessRepo{r.q}`) + `query/businesses.sql` (client, unprefixed) +
+  `query/businesses_admin.sql` (`Admin`-prefixed). Migration `000004`:
+  `businesses` (1:N `owner_user_id`, `deleted_at` soft delete),
+  `business_members` (`UNIQUE(business_id,user_id)`; the owner also gets a
+  `role='owner'` row so `ListUserBusinesses` is one JOIN), `business_invites`
+  (`status` pending/accepted/rejected/cancelled, partial
+  `UNIQUE … WHERE status='pending'` → pg `23505` → `business.ErrInvitePending`;
+  `23505` on `business_members` → `ErrAlreadyMember`). Invite lookup uses a
+  dedicated `GetActiveUserByPhone` (filters `deleted_at IS NULL`) — do NOT
+  reuse `GetUserByPhone`. Client `POST /client/businesses/:id/members` creates
+  a pending invite; admin `POST /admin/businesses/:id/members` adds immediately.
+  Routes registered inside the existing `/admin` (`AdminAuth`) and `/client`
+  (`ClientAuth`, `c.GetInt64("userID")`) groups; `NewRouter` gained
+  `businessAdminSvc`, `businessSvc` params. Error envelope + Persian messages
+  via a shared `businessError()` switch in `businesses_handler.go`.
 - **2026-08-30 — Auth stack + flow shapes.** JWT via `github.com/golang-jwt/jwt/v5` (HS256); TOTP 2FA via `github.com/pquerna/otp` (`totp.Generate` / `totp.Validate`, Google-Authenticator defaults). Patterns to reuse when client auth is built: login is two-step when 2FA is on (password → short-lived `pending_token` → TOTP code → tokens); password reset is 3-step OTP (`forgot` → SMS code → `reset` with phone + code + new password); the refresh token is an opaque 32-byte random stored as a SHA-256 hash, rotated on every refresh, revoked on logout and on password reset.
