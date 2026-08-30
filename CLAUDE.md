@@ -114,12 +114,18 @@ related work.
   `<!-- BEGIN:nextjs-agent-rules -->` block to `admin/AGENTS.md` +
   `client/AGENTS.md`. Expected — commit these, don't fight them. IDE TS
   diagnostics may lag after this; `next build` (0 errors) is the source of truth.
-- **2026-08-30 — Delegating to Codex.** This repo is not a git repo, so Codex
-  needs `--skip-git-repo-check`. Invocation used:
+- **2026-08-30 — Delegating to Codex.** Invocation used:
   `codex exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox
-  -C <repo> -o <outfile> "<prompt>"` where the prompt tells it to read a plan
-  file under `docs/plans/`. Runs unattended and needs network for
-  `go get` / `npm install`.
+  -C <worktree-abs-path> -o <outfile> "<prompt>"` where the prompt tells it to
+  read a plan file under `docs/plans/`. Runs unattended and needs network for
+  `go get` / `npm install`. The repo now has commits, so
+  `--skip-git-repo-check` is no longer required (still harmless inside a
+  worktree). `-C` MUST be the real worktree path: from
+  `C:\Users\root\Desktop\hesab`, `git worktree add ../hesab-<slug>` creates
+  `C:\Users\root\Desktop\hesab-<slug>` (a sibling of the repo, NOT under
+  `C:\Users\root`). Write the plan file *inside* that worktree — `Write`
+  silently creates missing parent dirs, so a wrong path just makes a stray dir
+  containing only the plan and Codex reports the repo missing.
 - **2026-08-30 — RTK wraps some commands.** `docker logs <c>` comes back as a
   summarised "Log Summary" — use `rtk proxy docker logs <c>` for raw lines.
   `find` with `-not` / `-exec` fails under RTK ("does not support compound
@@ -131,17 +137,39 @@ related work.
   For any error / warning / info / success feedback (login, forgot/reset
   password, 2FA, etc.) call `toast.error|warning|info|success("پیام فارسی")` —
   do NOT add inline `<p className="text-red-300">` message state to forms.
+- **2026-08-30 — Kill local `go run` servers before `git worktree remove`
+  (Windows).** A `go run ./cmd/server` started inside a worktree for
+  smoke-testing leaves a `server.exe` holding `api/`; `git worktree remove`
+  then fails the physical delete ("Device or resource busy" /
+  "Permission denied") even though git still unregisters the worktree.
+  `pkill -f 'cmd/server'` misses it — use `taskkill //F //IM server.exe`, then
+  `rm -rf` the dir and `git worktree prune`.
+- **2026-08-30 — Smoke-test worktree API without rebuilding the container.**
+  `hesab-api-1` holds `:8080` with a possibly-stale image. To exercise
+  worktree backend code, run `PORT=8081 COOKIE_SECURE=false go run ./cmd/server`
+  from the worktree's `api/` against the shared local Postgres (`:5432`, from
+  `docker compose`). Migrations/seed hit that same DB, so `migrate ... up` may
+  report "no change" if a sibling worktree already applied them.
+- **2026-08-30 — CRLF churn: modified in `git status`, empty `git diff`.**
+  `core.autocrlf` on this box makes freshly written / `sqlc generate`d files
+  show as modified with no content diff (LF→CRLF warnings on `git add`).
+  `git checkout -- <path>` clears it; it is not a real change, don't commit it.
 
 ## Current state (2026-08-30)
 
-Base scaffold only. Verified: `docker compose up -d --build` brings up
-`postgres` + `api`; `GET http://localhost:8080/health` → `200
-{"database":"up","status":"ok"}`.
+`docker compose up -d --build` brings up `postgres` + `api`; `GET
+http://localhost:8080/health` → `200 {"database":"up","status":"ok"}`.
+Migrations are CLI-only (`~/go/bin/migrate ... up`); the container runs
+neither migrate nor the seeders.
 
-- `api` — Gin + pgxpool, DDD layers under `internal/`, only `/health` wired.
-  `sqlc.yaml` present, no queries/migrations yet.
-- `admin` / `client` — one dummy login page each (not wired to the API),
-  built with ui-ux-pro-max direction. `npm install` done, `npm run dev` +
-  `next build` (static export to `out/`) both verified clean (0 errors).
-  admin → :3010, client → :3020, pages serve `lang="fa" dir="rtl"`.
-- No auth, no domain tables, no CI. Next task starts real features.
+- `api` — Gin + pgxpool, DDD layers under `internal/`. Wired: `/health`,
+  admin auth + 2FA (`/admin/auth/*`, `/admin/2fa/*`), client auth + 2FA
+  (`/client/auth/*`, `/client/2fa/*`), admin user management
+  (`/admin/users*`). Migrations `000001` admin_auth, `000002` client_auth,
+  `000003` users_admin. Fake fixed-code SMS (`123456`); sms.ir still a TODO.
+- `admin` — auth pages + `/settings/security` + `/users` (list/filter/create
+  modal) + `/users/[id]` (detail/edit/disable/reset-password/soft-delete),
+  all wired to the API cross-origin. `next build` static export clean.
+- `client` — auth pages wired to the API. Dashboard is still a stub.
+- Seed users: admin `9370843199` / `Amir@Pass1999`; client `9120000000` /
+  `Client@Pass1999`. No CI, no billing/subscription domain yet.
