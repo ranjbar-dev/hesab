@@ -29,4 +29,13 @@ func main() {
 		log.Fatal(e)
 	}
 	log.Printf("seeded admin id=%d phone=9370843199", id)
+	h, e = bcrypt.GenerateFromPassword([]byte("Client@Pass1999"), bcrypt.DefaultCost)
+	if e != nil {
+		log.Fatal(e)
+	}
+	e = pool.QueryRow(ctx, `INSERT INTO users (first_name,last_name,email,phone_number,password_hash,totp_secret) VALUES ($1,$2,$3,$4,$5,'') ON CONFLICT (phone_number) DO UPDATE SET first_name=EXCLUDED.first_name,last_name=EXCLUDED.last_name,email=EXCLUDED.email,password_hash=EXCLUDED.password_hash RETURNING id`, "تست", "کاربر", "user@hesab.local", "9120000000", string(h)).Scan(&id)
+	if e != nil && e != pgx.ErrNoRows {
+		log.Fatal(e)
+	}
+	log.Printf("seeded user id=%d phone=9120000000", id)
 }

@@ -10,18 +10,31 @@ import (
 
 type Querier interface {
 	ConsumePasswordReset(ctx context.Context, id int64) error
+	ConsumeUserPasswordReset(ctx context.Context, id int64) error
 	CreateAdmin(ctx context.Context, arg CreateAdminParams) (Admin, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetAdminByID(ctx context.Context, id int64) (Admin, error)
 	GetAdminByPhone(ctx context.Context, phoneNumber string) (Admin, error)
 	GetLatestPasswordReset(ctx context.Context, adminID int64) (AdminPasswordReset, error)
+	GetLatestUserPasswordReset(ctx context.Context, userID int64) (UserPasswordReset, error)
 	GetRefreshToken(ctx context.Context, tokenHash string) (AdminRefreshToken, error)
+	GetUserByID(ctx context.Context, id int64) (User, error)
+	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
+	GetUserRefreshToken(ctx context.Context, tokenHash string) (UserRefreshToken, error)
 	InsertPasswordReset(ctx context.Context, arg InsertPasswordResetParams) (AdminPasswordReset, error)
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (AdminRefreshToken, error)
+	InsertUserPasswordReset(ctx context.Context, arg InsertUserPasswordResetParams) (UserPasswordReset, error)
+	InsertUserRefreshToken(ctx context.Context, arg InsertUserRefreshTokenParams) (UserRefreshToken, error)
 	InvalidateAdminPasswordResets(ctx context.Context, adminID int64) error
+	InvalidateUserPasswordResets(ctx context.Context, userID int64) error
 	RevokeAllAdminRefreshTokens(ctx context.Context, adminID int64) error
+	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	RevokeUserRefreshToken(ctx context.Context, tokenHash string) error
 	SetAdminTOTPSecret(ctx context.Context, arg SetAdminTOTPSecretParams) error
+	SetUserTOTPSecret(ctx context.Context, arg SetUserTOTPSecretParams) error
 	UpdateAdminPassword(ctx context.Context, arg UpdateAdminPasswordParams) error
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
 var _ Querier = (*Queries)(nil)

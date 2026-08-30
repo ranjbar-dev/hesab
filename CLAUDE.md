@@ -93,6 +93,7 @@ not happen again, append a dated bullet here (or to the relevant folder's
 related work.
 
 <!-- LEARNINGS -->
+- **2026-08-30 — Client authentication.** Client auth deliberately parallels `adminauth` while staying separate: it uses `users`, `/client/auth/*` routes, and the `client_refresh_token` HttpOnly cookie scoped to `/client/auth`; the seed user is `9120000000` / `Client@Pass1999`.
 - **2026-08-30 — Go module version.** `go mod tidy` pulls a test-dep chain
   (gin → testify → rogpeppe/go-internal) that needs Go ≥ 1.25, so `api/go.mod`
   is `go 1.25` and `api/Dockerfile` uses `golang:1.25-alpine`. Do not

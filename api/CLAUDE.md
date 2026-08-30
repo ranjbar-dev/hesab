@@ -18,6 +18,7 @@ tools. This file holds api-specific rules and learnings.
 ## Learnings
 
 <!-- LEARNINGS -->
+- **2026-08-30 — Client authentication.** Client auth deliberately parallels `adminauth` while staying separate: it uses `users`, `/client/auth/*` routes, and the `client_refresh_token` HttpOnly cookie scoped to `/client/auth`; the seed user is `9120000000` / `Client@Pass1999`.
 - **2026-08-30 — Admin auth responses.** Errors use `{"error":{"code":"...","message":"..."}}`; phones normalize to canonical `9XXXXXXXXX`.
 - **2026-08-30 — Admin sessions.** Refresh tokens rotate and live in the HttpOnly `admin_refresh_token` cookie (`SameSite=None`; localhost is treated as secure for dev). Migrations are CLI-only golang-migrate files in `api/db/migration`; seed with `make seed`.
 - **2026-08-30 — SMS.** Password-reset SMS is a fake fixed-code (`123456`) stub; sms.ir remains a TODO.
