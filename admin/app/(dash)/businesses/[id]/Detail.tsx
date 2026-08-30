@@ -1,4 +1,238 @@
 "use client";
-import Link from"next/link";import{useParams,useRouter}from"next/navigation";import{useEffect,useState}from"react";import{toast}from"sonner";import{useAdmin}from"@/components/Sidebar";import Select from"@/components/Select";import{isoToJalaliLabel}from"@/lib/jalali";import{addBusinessMember,changeBusinessMemberRole,deleteBusiness,getBusiness,removeBusinessMember,renameBusiness,roleLabels,type Member,type Owner,type Business, type Role}from"@/lib/businesses";
-const input="h-10 rounded-lg border border-brand-border bg-brand-bg px-3 focus-visible:ring-2 focus-visible:ring-brand-accent/30";const assignable:[Role,string][]=[["admin","مدیر"],["accountant","حسابدار"],["viewer","ناظر"]];
-export default function Detail(){useAdmin();const id=Number(useParams<{id:string}>().id),r=useRouter(),[business,setBusiness]=useState<Business|null>(null),[owner,setOwner]=useState<Owner|null>(null),[members,setMembers]=useState<Member[]>([]),[name,setName]=useState(""),[phone,setPhone]=useState(""),[role,setRole]=useState<Exclude<Role,"owner">>("viewer"),[loading,setLoading]=useState(true);const load=()=>getBusiness(id).then(x=>{setBusiness(x.business);setOwner(x.owner);setMembers(x.members);setName(x.business.name)}).catch(()=>{toast.error("کسب‌وکار یافت نشد");r.replace("/businesses")}).finally(()=>setLoading(false));useEffect(()=>{if(!Number.isInteger(id)||id<1){r.replace("/businesses");return}void load()},[id]);if(loading)return <main className="grid min-h-screen place-items-center text-brand-muted">در حال بارگذاری…</main>;if(!business||!owner)return null;async function rename(e:React.FormEvent){e.preventDefault();try{setBusiness((await renameBusiness(id,{name})).business);toast.success("نام کسب‌وکار ذخیره شد")}catch(e){toast.error(e instanceof Error?e.message:"خطا")}}async function add(e:React.FormEvent){e.preventDefault();try{await addBusinessMember(id,{phone_number:phone,role});setPhone("");toast.success("عضو اضافه شد");load()}catch(e){toast.error(e instanceof Error?e.message:"خطا")}}async function change(m:Member,v:Exclude<Role,"owner">){try{await changeBusinessMemberRole(id,m.user_id,{role:v});toast.success("نقش عضو تغییر کرد");load()}catch(e){toast.error(e instanceof Error?e.message:"خطا")}}async function remove(m:Member){if(!confirm("این عضو حذف شود؟"))return;try{await removeBusinessMember(id,m.user_id);toast.success("عضو حذف شد");load()}catch(e){toast.error(e instanceof Error?e.message:"خطا")}}async function del(){if(!confirm("این کسب‌وکار حذف شود؟"))return;try{await deleteBusiness(id);toast.success("کسب‌وکار حذف شد");r.push("/businesses")}catch(e){toast.error(e instanceof Error?e.message:"خطا")}}const roleOptions=assignable.map(([value,label])=>({value,label}));return <main className="mx-auto max-w-5xl p-6 sm:p-12"><Link href="/businesses" className="text-sm text-brand-muted">→ بازگشت به فهرست</Link><section className="mt-6 rounded-2xl border border-brand-border bg-brand-surface p-6"><h1 className="text-2xl font-bold">{business.name}</h1><p className="mt-2 text-sm text-brand-muted">مالک: <Link href={`/users/${owner.id}`} className="text-brand-accent">{owner.first_name} {owner.last_name}</Link> · {isoToJalaliLabel(business.created_at)}</p><form onSubmit={rename} className="mt-5 flex max-w-xl gap-2"><input value={name} onChange={e=>setName(e.target.value)} placeholder="نام کسب‌وکار" className={`flex-1 ${input}`} aria-label="نام کسب‌وکار"/><button className="cursor-pointer rounded-lg bg-brand-accent px-4 font-bold text-brand-bg">ذخیره نام</button></form></section><section className="mt-5 rounded-2xl border border-brand-border bg-brand-surface p-6"><h2 className="font-bold">اعضا</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[42rem] text-right text-sm"><thead className="text-brand-muted"><tr><th className="p-2">نام</th><th className="p-2">موبایل</th><th className="p-2">نقش</th><th className="p-2">تاریخ عضویت</th><th/></tr></thead><tbody>{members.map(m=><tr key={m.user_id} className="border-t border-brand-border"><td className="p-2">{m.first_name} {m.last_name}</td><td className="p-2" dir="ltr">{m.phone_number}</td><td className="p-2">{m.role==="owner"?<span>{roleLabels.owner}</span>:<Select value={{value:m.role,label:roleLabels[m.role]}} onChange={v=>change(m,(v?.value??m.role) as Exclude<Role,"owner">)} options={roleOptions}/>}</td><td className="p-2">{isoToJalaliLabel(m.created_at)}</td><td className="p-2">{m.role!=="owner"&&<button onClick={()=>remove(m)} className="cursor-pointer text-red-400">حذف</button>}</td></tr>)}</tbody></table></div><form onSubmit={add} className="mt-5 flex flex-wrap gap-2 border-t border-brand-border pt-5"><input required value={phone} onChange={e=>setPhone(e.target.value)} placeholder="شماره موبایل" dir="ltr" className={`flex-1 ${input}`}/><Select value={{value:role,label:roleLabels[role]}} onChange={v=>setRole((v?.value??role) as Exclude<Role,"owner">)} options={roleOptions}/><button className="cursor-pointer rounded-lg bg-brand-accent px-4 font-bold text-brand-bg">افزودن عضو</button></form></section><section className="mt-5 rounded-2xl border border-red-500/30 bg-brand-surface p-6"><h2 className="font-bold text-red-400">ناحیه خطر</h2><button onClick={del} className="mt-4 cursor-pointer rounded-lg border border-red-500/50 px-4 py-2 text-red-400">حذف کسب‌وکار</button></section></main>}
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAdmin } from "@/components/Sidebar";
+import Select from "@/components/Select";
+import { isoToJalaliLabel } from "@/lib/jalali";
+import {
+  addBusinessMember,
+  changeBusinessMemberRole,
+  deleteBusiness,
+  getBusiness,
+  removeBusinessMember,
+  renameBusiness,
+  roleLabels,
+  type Member,
+  type Owner,
+  type Business,
+  type Role,
+} from "@/lib/businesses";
+const input =
+  "h-10 rounded-lg border border-brand-border bg-brand-bg px-3 focus-visible:ring-2 focus-visible:ring-brand-accent/30";
+const assignable: [Role, string][] = [
+  ["admin", "مدیر"],
+  ["accountant", "حسابدار"],
+  ["viewer", "ناظر"],
+];
+export default function Detail() {
+  useAdmin();
+  const paramId = useParams<{ id: string }>().id,
+    id = Number(
+      paramId && paramId !== "_"
+        ? paramId
+        : (typeof window !== "undefined" ? window.location.pathname.match(/^\/businesses\/([^/]+)/)?.[1] : undefined),
+    ),
+    r = useRouter(),
+    [business, setBusiness] = useState<Business | null>(null),
+    [owner, setOwner] = useState<Owner | null>(null),
+    [members, setMembers] = useState<Member[]>([]),
+    [name, setName] = useState(""),
+    [phone, setPhone] = useState(""),
+    [role, setRole] = useState<Exclude<Role, "owner">>("viewer"),
+    [loading, setLoading] = useState(true);
+  const load = () =>
+    getBusiness(id)
+      .then((x) => {
+        setBusiness(x.business);
+        setOwner(x.owner);
+        setMembers(x.members);
+        setName(x.business.name);
+      })
+      .catch(() => {
+        toast.error("کسب‌وکار یافت نشد");
+        r.replace("/businesses");
+      })
+      .finally(() => setLoading(false));
+  useEffect(() => {
+    if (!Number.isInteger(id) || id < 1) {
+      r.replace("/businesses");
+      return;
+    }
+    void load();
+  }, [id]);
+  if (loading)
+    return (
+      <main className="grid min-h-screen place-items-center text-brand-muted">
+        در حال بارگذاری…
+      </main>
+    );
+  if (!business || !owner) return null;
+  async function rename(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      setBusiness((await renameBusiness(id, { name })).business);
+      toast.success("نام کسب‌وکار ذخیره شد");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    }
+  }
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await addBusinessMember(id, { phone_number: phone, role });
+      setPhone("");
+      toast.success("عضو اضافه شد");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    }
+  }
+  async function change(m: Member, v: Exclude<Role, "owner">) {
+    try {
+      await changeBusinessMemberRole(id, m.user_id, { role: v });
+      toast.success("نقش عضو تغییر کرد");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    }
+  }
+  async function remove(m: Member) {
+    if (!confirm("این عضو حذف شود؟")) return;
+    try {
+      await removeBusinessMember(id, m.user_id);
+      toast.success("عضو حذف شد");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    }
+  }
+  async function del() {
+    if (!confirm("این کسب‌وکار حذف شود؟")) return;
+    try {
+      await deleteBusiness(id);
+      toast.success("کسب‌وکار حذف شد");
+      r.push("/businesses");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    }
+  }
+  const roleOptions = assignable.map(([value, label]) => ({ value, label }));
+  return (
+    <main className="mx-auto max-w-5xl p-6 sm:p-12">
+      <Link href="/businesses" className="text-sm text-brand-muted">
+        → بازگشت به فهرست
+      </Link>
+      <section className="mt-6 rounded-2xl border border-brand-border bg-brand-surface p-6">
+        <h1 className="text-2xl font-bold">{business.name}</h1>
+        <p className="mt-2 text-sm text-brand-muted">
+          مالک:{" "}
+          <Link href={`/users/${owner.id}`} className="text-brand-accent">
+            {owner.first_name} {owner.last_name}
+          </Link>{" "}
+          · {isoToJalaliLabel(business.created_at)}
+        </p>
+        <form onSubmit={rename} className="mt-5 flex max-w-xl gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="نام کسب‌وکار"
+            className={`flex-1 ${input}`}
+            aria-label="نام کسب‌وکار"
+          />
+          <button className="cursor-pointer rounded-lg bg-brand-accent px-4 font-bold text-brand-bg">
+            ذخیره نام
+          </button>
+        </form>
+      </section>
+      <section className="mt-5 rounded-2xl border border-brand-border bg-brand-surface p-6">
+        <h2 className="font-bold">اعضا</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[42rem] text-right text-sm">
+            <thead className="text-brand-muted">
+              <tr>
+                <th className="p-2">نام</th>
+                <th className="p-2">موبایل</th>
+                <th className="p-2">نقش</th>
+                <th className="p-2">تاریخ عضویت</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.user_id} className="border-t border-brand-border">
+                  <td className="p-2">
+                    {m.first_name} {m.last_name}
+                  </td>
+                  <td className="p-2" dir="ltr">
+                    {m.phone_number}
+                  </td>
+                  <td className="p-2">
+                    {m.role === "owner" ? (
+                      <span>{roleLabels.owner}</span>
+                    ) : (
+                      <Select
+                        value={{ value: m.role, label: roleLabels[m.role] }}
+                        onChange={(v) =>
+                          change(
+                            m,
+                            (v?.value ?? m.role) as Exclude<Role, "owner">,
+                          )
+                        }
+                        options={roleOptions}
+                      />
+                    )}
+                  </td>
+                  <td className="p-2">{isoToJalaliLabel(m.created_at)}</td>
+                  <td className="p-2">
+                    {m.role !== "owner" && (
+                      <button
+                        onClick={() => remove(m)}
+                        className="cursor-pointer text-red-400"
+                      >
+                        حذف
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <form
+          onSubmit={add}
+          className="mt-5 flex flex-wrap gap-2 border-t border-brand-border pt-5"
+        >
+          <input
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="شماره موبایل"
+            dir="ltr"
+            className={`flex-1 ${input}`}
+          />
+          <Select
+            value={{ value: role, label: roleLabels[role] }}
+            onChange={(v) =>
+              setRole((v?.value ?? role) as Exclude<Role, "owner">)
+            }
+            options={roleOptions}
+          />
+          <button className="cursor-pointer rounded-lg bg-brand-accent px-4 font-bold text-brand-bg">
+            افزودن عضو
+          </button>
+        </form>
+      </section>
+      <section className="mt-5 rounded-2xl border border-red-500/30 bg-brand-surface p-6">
+        <h2 className="font-bold text-red-400">ناحیه خطر</h2>
+        <button
+          onClick={del}
+          className="mt-4 cursor-pointer rounded-lg border border-red-500/50 px-4 py-2 text-red-400"
+        >
+          حذف کسب‌وکار
+        </button>
+      </section>
+    </main>
+  );
+}
