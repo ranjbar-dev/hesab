@@ -18,7 +18,17 @@ function Info({ l, children }: { l: string; children: React.ReactNode }) {
 }
 
 export default function Detail() {
-  const id = Number(useParams<{ id: string }>().id);
+  const paramId = useParams<{ id: string }>().id;
+  // ponytail: output:"export" bakes the generateStaticParams placeholder
+  // ("_") into the hydration payload instead of the real URL segment, so
+  // useParams() reports "_" on a hard load / deep link. Fall back to the
+  // real browser path in that one case; client-side navigation already
+  // resolves the real id via useParams() and is untouched.
+  const id = Number(
+    paramId && paramId !== "_"
+      ? paramId
+      : (typeof window !== "undefined" ? window.location.pathname.match(/^\/users\/([^/]+)/)?.[1] : undefined)
+  );
   const r = useRouter();
   useAdmin();
   const [u, setU] = useState<User | null>(null);

@@ -1,4 +1,125 @@
 "use client";
-import Link from"next/link";import{createContext,useContext,useEffect,useState}from"react";import{useParams,usePathname,useRouter}from"next/navigation";import{toast}from"sonner";import{apiFetch}from"@/lib/api";import{clearSession}from"@/lib/auth";import{useRequireAuth}from"@/lib/useRequireAuth";import{getBusiness,listBusinesses,type Business,type BusinessRow,type Role}from"@/lib/businesses";import Select from"@/components/Select";
-type Value={business:Business;role:Role;reload:()=>Promise<void>};export const BusinessContext=createContext<Value|null>(null);export const useBusiness=()=>{const v=useContext(BusinessContext);if(!v)throw new Error("business context missing");return v};
-export default function Shell({children}:{children:React.ReactNode}){const{id}=useParams<{id:string}>(),bid=Number(id),path=usePathname(),r=useRouter(),{loading:auth}=useRequireAuth(),[value,setValue]=useState<Value|null>(null),[options,setOptions]=useState<BusinessRow[]>([]);const reload=async()=>{try{const[x,y]=await Promise.all([getBusiness(bid),listBusinesses()]);setOptions(y.businesses);setValue({business:x.business,role:x.role,reload})}catch{toast.error("دسترسی ندارید");r.replace("/select-business")}};useEffect(()=>{if(Number.isInteger(bid)&&bid>0)void reload();else r.replace("/select-business")},[bid]);if(auth||!value)return <main className="grid min-h-screen place-items-center text-brand-muted">در حال بارگذاری…</main>;const seg=path.match(/\/businesses\/[^/]+\/(\w+)/)?.[1]??"dashboard";const links:[string,string][]=[["dashboard","داشبورد"],["members","اعضا"],["settings","تنظیمات"]];async function logout(){try{await apiFetch("/client/auth/logout",{method:"POST"})}finally{clearSession();r.replace("/login")}}return <BusinessContext.Provider value={value}><div className="min-h-screen"><header className="border-b border-brand-border bg-brand-surface"><div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 p-4 sm:px-6"><Link href="/select-business" className="text-xl font-bold text-brand-accent">حساب</Link><div className="min-w-44"><Select value={options.map(x=>({value:String(x.id),label:x.name})).find(x=>x.value===String(bid))??null} onChange={x=>x&&r.push(`/businesses/${x.value}/${seg}`)} options={options.map(x=>({value:String(x.id),label:x.name}))} placeholder="انتخاب کسب‌وکار"/></div><nav className="flex flex-1 gap-1">{links.map(([s,l])=><Link key={s} href={`/businesses/${bid}/${s}`} className={`rounded-lg px-3 py-2 text-sm transition-colors ${seg===s?"bg-brand-accent text-white":"text-brand-muted hover:bg-brand-bg"}`}>{l}</Link>)}</nav><Link href="/settings/security" className="text-sm text-brand-muted hover:text-brand-text">تنظیمات امنیتی</Link><button onClick={logout} className="cursor-pointer text-sm text-brand-muted hover:text-brand-text">خروج</button></div></header><main className="mx-auto max-w-6xl p-6 sm:p-10">{children}</main></div></BusinessContext.Provider>}
+import Link from "next/link";
+import { createContext, useContext, useEffect, useState } from "react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
+import { clearSession } from "@/lib/auth";
+import { useRequireAuth } from "@/lib/useRequireAuth";
+import {
+  getBusiness,
+  listBusinesses,
+  type Business,
+  type BusinessRow,
+  type Role,
+} from "@/lib/businesses";
+import Select from "@/components/Select";
+type Value = { business: Business; role: Role; reload: () => Promise<void> };
+export const BusinessContext = createContext<Value | null>(null);
+export const useBusiness = () => {
+  const v = useContext(BusinessContext);
+  if (!v) throw new Error("business context missing");
+  return v;
+};
+export default function Shell({ children }: { children: React.ReactNode }) {
+  const { id: paramId } = useParams<{ id: string }>(),
+    bid = Number(
+      paramId && paramId !== "_"
+        ? paramId
+        : (typeof window !== "undefined" ? window.location.pathname.match(/^\/businesses\/([^/]+)/)?.[1] : undefined),
+    ),
+    path = usePathname(),
+    r = useRouter(),
+    { loading: auth } = useRequireAuth(),
+    [value, setValue] = useState<Value | null>(null),
+    [options, setOptions] = useState<BusinessRow[]>([]);
+  const reload = async () => {
+    try {
+      const [x, y] = await Promise.all([getBusiness(bid), listBusinesses()]);
+      setOptions(y.businesses);
+      setValue({ business: x.business, role: x.role, reload });
+    } catch {
+      toast.error("دسترسی ندارید");
+      r.replace("/select-business");
+    }
+  };
+  useEffect(() => {
+    if (Number.isInteger(bid) && bid > 0) void reload();
+    else r.replace("/select-business");
+  }, [bid]);
+  if (auth || !value)
+    return (
+      <main className="grid min-h-screen place-items-center text-brand-muted">
+        در حال بارگذاری…
+      </main>
+    );
+  const seg = path.match(/\/businesses\/[^/]+\/(\w+)/)?.[1] ?? "dashboard";
+  const links: [string, string][] = [
+    ["dashboard", "داشبورد"],
+    ["members", "اعضا"],
+    ["settings", "تنظیمات"],
+  ];
+  async function logout() {
+    try {
+      await apiFetch("/client/auth/logout", { method: "POST" });
+    } finally {
+      clearSession();
+      r.replace("/login");
+    }
+  }
+  return (
+    <BusinessContext.Provider value={value}>
+      <div className="min-h-screen">
+        <header className="border-b border-brand-border bg-brand-surface">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 p-4 sm:px-6">
+            <Link
+              href="/select-business"
+              className="text-xl font-bold text-brand-accent"
+            >
+              حساب
+            </Link>
+            <div className="min-w-44">
+              <Select
+                value={
+                  options
+                    .map((x) => ({ value: String(x.id), label: x.name }))
+                    .find((x) => x.value === String(bid)) ?? null
+                }
+                onChange={(x) => x && r.push(`/businesses/${x.value}/${seg}`)}
+                options={options.map((x) => ({
+                  value: String(x.id),
+                  label: x.name,
+                }))}
+                placeholder="انتخاب کسب‌وکار"
+              />
+            </div>
+            <nav className="flex flex-1 gap-1">
+              {links.map(([s, l]) => (
+                <Link
+                  key={s}
+                  href={`/businesses/${bid}/${s}`}
+                  className={`rounded-lg px-3 py-2 text-sm transition-colors ${seg === s ? "bg-brand-accent text-white" : "text-brand-muted hover:bg-brand-bg"}`}
+                >
+                  {l}
+                </Link>
+              ))}
+            </nav>
+            <Link
+              href="/settings/security"
+              className="text-sm text-brand-muted hover:text-brand-text"
+            >
+              تنظیمات امنیتی
+            </Link>
+            <button
+              onClick={logout}
+              className="cursor-pointer text-sm text-brand-muted hover:text-brand-text"
+            >
+              خروج
+            </button>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl p-6 sm:p-10">{children}</main>
+      </div>
+    </BusinessContext.Provider>
+  );
+}
