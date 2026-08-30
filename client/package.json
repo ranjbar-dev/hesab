@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3020",
     "build": "next build",
-    "start": "npx --yes serve out -l 3020"
+    "start": "npx --yes serve out -l 3020 -c serve.json"
   },
   "dependencies": {
     "next": "16.3.3",

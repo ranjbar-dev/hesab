@@ -6,12 +6,20 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	AddMember(ctx context.Context, arg AddMemberParams) (BusinessMember, error)
+	AdminCountBusinesses(ctx context.Context, name pgtype.Text) (int64, error)
 	AdminCountUsers(ctx context.Context, arg AdminCountUsersParams) (int64, error)
 	AdminCreateUser(ctx context.Context, arg AdminCreateUserParams) (User, error)
+	AdminGetBusiness(ctx context.Context, id int64) (AdminGetBusinessRow, error)
 	AdminGetUser(ctx context.Context, id int64) (User, error)
+	AdminListBusinesses(ctx context.Context, arg AdminListBusinessesParams) ([]AdminListBusinessesRow, error)
+	AdminListJoinedBusinesses(ctx context.Context, userID int64) ([]AdminListJoinedBusinessesRow, error)
+	AdminListOwnedBusinesses(ctx context.Context, ownerUserID int64) ([]AdminListOwnedBusinessesRow, error)
 	AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]User, error)
 	AdminSetUserPassword(ctx context.Context, arg AdminSetUserPasswordParams) error
 	AdminSetUserStatus(ctx context.Context, arg AdminSetUserStatusParams) (User, error)
@@ -20,11 +28,17 @@ type Querier interface {
 	ConsumePasswordReset(ctx context.Context, id int64) error
 	ConsumeUserPasswordReset(ctx context.Context, id int64) error
 	CreateAdmin(ctx context.Context, arg CreateAdminParams) (Admin, error)
+	CreateBusiness(ctx context.Context, arg CreateBusinessParams) (Business, error)
+	CreateInvite(ctx context.Context, arg CreateInviteParams) (BusinessInvite, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetActiveUserByPhone(ctx context.Context, phoneNumber string) (User, error)
 	GetAdminByID(ctx context.Context, id int64) (Admin, error)
 	GetAdminByPhone(ctx context.Context, phoneNumber string) (Admin, error)
+	GetBusiness(ctx context.Context, id int64) (Business, error)
+	GetInvite(ctx context.Context, id int64) (BusinessInvite, error)
 	GetLatestPasswordReset(ctx context.Context, adminID int64) (AdminPasswordReset, error)
 	GetLatestUserPasswordReset(ctx context.Context, userID int64) (UserPasswordReset, error)
+	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
 	GetRefreshToken(ctx context.Context, tokenHash string) (AdminRefreshToken, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
@@ -35,13 +49,22 @@ type Querier interface {
 	InsertUserRefreshToken(ctx context.Context, arg InsertUserRefreshTokenParams) (UserRefreshToken, error)
 	InvalidateAdminPasswordResets(ctx context.Context, adminID int64) error
 	InvalidateUserPasswordResets(ctx context.Context, userID int64) error
+	ListMembers(ctx context.Context, businessID int64) ([]ListMembersRow, error)
+	ListPendingInvitesForBusiness(ctx context.Context, businessID int64) ([]ListPendingInvitesForBusinessRow, error)
+	ListPendingInvitesForUser(ctx context.Context, userID int64) ([]ListPendingInvitesForUserRow, error)
+	ListUserBusinesses(ctx context.Context, userID int64) ([]ListUserBusinessesRow, error)
+	RemoveMember(ctx context.Context, arg RemoveMemberParams) error
+	RenameBusiness(ctx context.Context, arg RenameBusinessParams) (Business, error)
 	RevokeAllAdminRefreshTokens(ctx context.Context, adminID int64) error
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeUserRefreshToken(ctx context.Context, tokenHash string) error
 	SetAdminTOTPSecret(ctx context.Context, arg SetAdminTOTPSecretParams) error
+	SetInviteStatus(ctx context.Context, arg SetInviteStatusParams) error
 	SetUserTOTPSecret(ctx context.Context, arg SetUserTOTPSecretParams) error
+	SoftDeleteBusiness(ctx context.Context, id int64) error
 	UpdateAdminPassword(ctx context.Context, arg UpdateAdminPasswordParams) error
+	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (BusinessMember, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
