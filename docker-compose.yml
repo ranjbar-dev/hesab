@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hesab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hesab}
+      POSTGRES_DB: ${POSTGRES_DB:-hesab}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hesab} -d ${POSTGRES_DB:-hesab}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-hesab}:${POSTGRES_PASSWORD:-hesab}@postgres:5432/${POSTGRES_DB:-hesab}?sslmode=disable
+      PORT: 8080
+      GIN_MODE: release
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-admin-secret-change-me}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-720h}
+      PASSWORD_RESET_TTL: ${PASSWORD_RESET_TTL:-5m}
+      TWOFA_PENDING_TTL: ${TWOFA_PENDING_TTL:-5m}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3010,http://localhost:3020}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      TOTP_ISSUER: ${TOTP_ISSUER:-Hesab Admin}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

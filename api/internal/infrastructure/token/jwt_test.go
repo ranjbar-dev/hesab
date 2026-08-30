@@ -1,0 +1,3 @@
+package token
+import("testing";"time";"hesab/api/internal/config")
+func TestJWTTypesAndExpiry(t *testing.T){j:=New(config.Config{JWTSecret:"test",AccessTokenTTL:time.Hour,TwoFAPendingTTL:time.Hour});a,_,e:=j.IssueAccess(4);if e!=nil{t.Fatal(e)};if id,e:=j.ParseAccess(a);e!=nil||id!=4{t.Fatalf("access: %d %v",id,e)};if _,e:=j.ParsePending(a);e==nil{t.Fatal("access accepted as pending")};p,e:=j.IssuePending(4);if e!=nil{t.Fatal(e)};if _,e:=j.ParseAccess(p);e==nil{t.Fatal("pending accepted as access")};expired:=New(config.Config{JWTSecret:"test",AccessTokenTTL:-time.Hour,TwoFAPendingTTL:time.Hour});x,_,_:=expired.IssueAccess(4);if _,e:=expired.ParseAccess(x);e==nil{t.Fatal("expired accepted")}}

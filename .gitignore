@@ -1,0 +1,16 @@
+# Env
+.env
+!.env.example
+
+# Node
+node_modules/
+.next/
+out/
+
+# Go
+/api/bin/
+*.exe
+
+# OS
+.DS_Store
+Thumbs.db
