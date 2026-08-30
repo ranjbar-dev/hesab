@@ -93,6 +93,10 @@ not happen again, append a dated bullet here (or to the relevant folder's
 related work.
 
 <!-- LEARNINGS -->
+- **2026-08-30 — Frontend readability.** Keep every function, component, hook,
+  and page in `admin` and `client` formatted with normal line breaks and
+  indentation; never commit compressed one-line frontend source. Run Prettier
+  on the relevant frontend source files before handing off changes.
 - **2026-08-30 — Admin UI primitives and routing.** The admin shell is the `(dash)` route group with `components/Sidebar.tsx` and `AdminContext`; use `useAdmin()` in descendants rather than re-fetching `/admin/me`. `components/Modal.tsx` is the standard native-dialog modal (`m-auto`, backdrop click and X close). Both apps use `components/Select.tsx` and `components/DatePicker.tsx` (react-select and react-multi-date-picker themed from `--color-brand-*`) instead of native selects/date inputs. Admin avatars are small bytea values with an unauthenticated `GET /admin/avatars/:id`, limited to 1 MiB PNG/JPEG/WebP. When adding a dynamic static-export route, mirror its placeholder output rewrite from `admin/serve.json` or `client/serve.json` into its matching nginx config so production deep links work.
 - **2026-08-30 — Client authentication.** Client auth deliberately parallels `adminauth` while staying separate: it uses `users`, `/client/auth/*` routes, and the `client_refresh_token` HttpOnly cookie scoped to `/client/auth`; the seed user is `9120000000` / `Client@Pass1999`.
 - **2026-08-30 — Go module version.** `go mod tidy` pulls a test-dep chain

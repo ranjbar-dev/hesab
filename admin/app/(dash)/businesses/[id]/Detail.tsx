@@ -32,7 +32,9 @@ export default function Detail() {
     id = Number(
       paramId && paramId !== "_"
         ? paramId
-        : (typeof window !== "undefined" ? window.location.pathname.match(/^\/businesses\/([^/]+)/)?.[1] : undefined),
+        : typeof window !== "undefined"
+          ? window.location.pathname.match(/^\/businesses\/([^/]+)/)?.[1]
+          : undefined,
     ),
     r = useRouter(),
     [business, setBusiness] = useState<Business | null>(null),

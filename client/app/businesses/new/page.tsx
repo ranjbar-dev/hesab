@@ -1,1 +1,61 @@
-"use client";import Link from"next/link";import{useRouter}from"next/navigation";import{useState}from"react";import{toast}from"sonner";import{createBusiness}from"@/lib/businesses";import{useRequireAuth}from"@/lib/useRequireAuth";export default function NewBusiness(){const r=useRouter(),{loading}=useRequireAuth(),[name,setName]=useState(""),[busy,setBusy]=useState(false);if(loading)return <main className="grid min-h-screen place-items-center text-brand-muted">در حال بارگذاری…</main>;async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);try{const x=await createBusiness({name});toast.success("کسب‌وکار ساخته شد");r.replace(`/businesses/${x.business.id}/dashboard`)}catch(e){toast.error(e instanceof Error?e.message:"خطا")}finally{setBusy(false)}}return <main className="grid min-h-screen place-items-center p-6"><form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-7"><Link href="/select-business" className="text-sm text-brand-muted">→ بازگشت</Link><h1 className="mt-5 text-2xl font-bold">ساخت کسب‌وکار</h1><label className="mt-5 block text-sm">نام کسب‌وکار<input required value={name} onChange={e=>setName(e.target.value)} className="mt-2 h-11 w-full rounded-lg border border-brand-border bg-brand-bg px-3" autoFocus/></label><button disabled={busy} className="mt-5 h-11 w-full cursor-pointer rounded-lg bg-brand-accent font-bold text-white disabled:opacity-60">{busy?"در حال ساخت…":"ساخت کسب‌وکار"}</button></form></main>}
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { createBusiness } from "@/lib/businesses";
+import { useRequireAuth } from "@/lib/useRequireAuth";
+export default function NewBusiness() {
+  const r = useRouter(),
+    { loading } = useRequireAuth(),
+    [name, setName] = useState(""),
+    [busy, setBusy] = useState(false);
+  if (loading)
+    return (
+      <main className="grid min-h-screen place-items-center text-brand-muted">
+        در حال بارگذاری…
+      </main>
+    );
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const x = await createBusiness({ name });
+      toast.success("کسب‌وکار ساخته شد");
+      r.replace(`/businesses/${x.business.id}/dashboard`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "خطا");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="grid min-h-screen place-items-center p-6">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-7"
+      >
+        <Link href="/select-business" className="text-sm text-brand-muted">
+          → بازگشت
+        </Link>
+        <h1 className="mt-5 text-2xl font-bold">ساخت کسب‌وکار</h1>
+        <label className="mt-5 block text-sm">
+          نام کسب‌وکار
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-2 h-11 w-full rounded-lg border border-brand-border bg-brand-bg px-3"
+            autoFocus
+          />
+        </label>
+        <button
+          disabled={busy}
+          className="mt-5 h-11 w-full cursor-pointer rounded-lg bg-brand-accent font-bold text-white disabled:opacity-60"
+        >
+          {busy ? "در حال ساخت…" : "ساخت کسب‌وکار"}
+        </button>
+      </form>
+    </main>
+  );
+}

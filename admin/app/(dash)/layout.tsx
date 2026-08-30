@@ -1,3 +1,9 @@
 "use client";
 import Sidebar from "@/components/Sidebar";
-export default function DashLayout({ children }: { children: React.ReactNode }) { return <Sidebar>{children}</Sidebar>; }
+export default function DashLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <Sidebar>{children}</Sidebar>;
+}

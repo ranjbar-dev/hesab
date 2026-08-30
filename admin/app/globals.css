@@ -1,17 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap");
 @import "react-multi-date-picker/styles/layouts/prime.css";
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-bg: #0F172A;
-  --color-brand-surface: #1E293B;
+  --color-brand-bg: #0f172a;
+  --color-brand-surface: #1e293b;
   --color-brand-border: #334155;
-  --color-brand-text: #F8FAFC;
-  --color-brand-muted: #94A3B8;
-  --color-brand-accent: #F59E0B;
-  --color-brand-accent-hover: #D97706;
+  --color-brand-text: #f8fafc;
+  --color-brand-muted: #94a3b8;
+  --color-brand-accent: #f59e0b;
+  --color-brand-accent-hover: #d97706;
 }
 
 html,
@@ -21,8 +21,25 @@ body {
   color: var(--color-brand-text);
 }
 
-dialog[open] { margin: auto; }
-.rmdp-wrapper, .rmdp-calendar { background: var(--color-brand-surface); border-color: var(--color-brand-border); color: var(--color-brand-text); }
-.rmdp-header, .rmdp-week-day, .rmdp-arrow-container { color: var(--color-brand-muted); }
-.rmdp-arrow-container:hover { background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent); }
-.rmdp-day span:hover, .rmdp-day.rmdp-selected span { background: var(--color-brand-accent); color: var(--color-brand-bg); }
+dialog[open] {
+  margin: auto;
+}
+.rmdp-wrapper,
+.rmdp-calendar {
+  background: var(--color-brand-surface);
+  border-color: var(--color-brand-border);
+  color: var(--color-brand-text);
+}
+.rmdp-header,
+.rmdp-week-day,
+.rmdp-arrow-container {
+  color: var(--color-brand-muted);
+}
+.rmdp-arrow-container:hover {
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+}
+.rmdp-day span:hover,
+.rmdp-day.rmdp-selected span {
+  background: var(--color-brand-accent);
+  color: var(--color-brand-bg);
+}
