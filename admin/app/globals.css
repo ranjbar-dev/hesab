@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+@import "react-multi-date-picker/styles/layouts/prime.css";
 @import "tailwindcss";
 
 @theme {
@@ -19,3 +20,9 @@ body {
   background-color: var(--color-brand-bg);
   color: var(--color-brand-text);
 }
+
+dialog[open] { margin: auto; }
+.rmdp-wrapper, .rmdp-calendar { background: var(--color-brand-surface); border-color: var(--color-brand-border); color: var(--color-brand-text); }
+.rmdp-header, .rmdp-week-day, .rmdp-arrow-container { color: var(--color-brand-muted); }
+.rmdp-arrow-container:hover { background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent); }
+.rmdp-day span:hover, .rmdp-day.rmdp-selected span { background: var(--color-brand-accent); color: var(--color-brand-bg); }

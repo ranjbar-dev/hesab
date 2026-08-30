@@ -25,6 +25,7 @@ type Querier interface {
 	AdminSetUserStatus(ctx context.Context, arg AdminSetUserStatusParams) (User, error)
 	AdminSoftDeleteUser(ctx context.Context, id int64) error
 	AdminUpdateUserProfile(ctx context.Context, arg AdminUpdateUserProfileParams) (User, error)
+	ClearAdminAvatar(ctx context.Context, id int64) error
 	ConsumePasswordReset(ctx context.Context, id int64) error
 	ConsumeUserPasswordReset(ctx context.Context, id int64) error
 	CreateAdmin(ctx context.Context, arg CreateAdminParams) (Admin, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (BusinessInvite, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetActiveUserByPhone(ctx context.Context, phoneNumber string) (User, error)
+	GetAdminAvatar(ctx context.Context, id int64) (GetAdminAvatarRow, error)
 	GetAdminByID(ctx context.Context, id int64) (Admin, error)
 	GetAdminByPhone(ctx context.Context, phoneNumber string) (Admin, error)
 	GetBusiness(ctx context.Context, id int64) (Business, error)
@@ -59,11 +61,13 @@ type Querier interface {
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeUserRefreshToken(ctx context.Context, tokenHash string) error
+	SetAdminAvatar(ctx context.Context, arg SetAdminAvatarParams) error
 	SetAdminTOTPSecret(ctx context.Context, arg SetAdminTOTPSecretParams) error
 	SetInviteStatus(ctx context.Context, arg SetInviteStatusParams) error
 	SetUserTOTPSecret(ctx context.Context, arg SetUserTOTPSecretParams) error
 	SoftDeleteBusiness(ctx context.Context, id int64) error
 	UpdateAdminPassword(ctx context.Context, arg UpdateAdminPasswordParams) error
+	UpdateAdminProfile(ctx context.Context, arg UpdateAdminProfileParams) (Admin, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (BusinessMember, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }

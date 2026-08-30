@@ -12,12 +12,14 @@ var (
 	ErrTwoFARequired      = errors.New("twofa required")
 	ErrTwoFACodeInvalid   = errors.New("twofa code invalid")
 	ErrWeakPassword       = errors.New("weak password")
+	ErrInvalidAvatar      = errors.New("invalid avatar")
 )
 
 type Admin struct {
 	ID                                                                int64
 	FirstName, LastName, Email, PhoneNumber, PasswordHash, TOTPSecret string
 	IsMale                                                            bool
+	AvatarType                                                        string
 	CreatedAt                                                         time.Time
 }
 

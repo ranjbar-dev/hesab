@@ -6,7 +6,10 @@ import (
 	"hesab/api/internal/application/adminauth"
 	"hesab/api/internal/config"
 	"hesab/api/internal/domain/admin"
+	"io"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type adminAuthHandler struct {
@@ -37,13 +40,21 @@ type activateReq struct {
 type disableReq struct {
 	Password string `json:"password" binding:"required"`
 }
+type updateAdminReq struct {
+	FirstName   string `json:"first_name" binding:"required"`
+	LastName    string `json:"last_name" binding:"required"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
+	IsMale      bool   `json:"is_male"`
+}
 
 func errJSON(c *gin.Context, status int, code, msg string) {
 	c.JSON(status, gin.H{"error": gin.H{"code": code, "message": msg}})
 }
 func adminJSON(a admin.Admin) gin.H {
-	return gin.H{"id": a.ID, "first_name": a.FirstName, "last_name": a.LastName, "email": a.Email, "phone_number": a.PhoneNumber, "is_male": a.IsMale, "two_fa_enabled": a.TwoFAEnabled(), "created_at": a.CreatedAt}
+	return gin.H{"id": a.ID, "first_name": a.FirstName, "last_name": a.LastName, "email": a.Email, "phone_number": a.PhoneNumber, "is_male": a.IsMale, "two_fa_enabled": a.TwoFAEnabled(), "created_at": a.CreatedAt, "avatar_url": avatarURL(a)}
 }
+func avatarURL(a admin.Admin) any { if a.AvatarType == "" { return nil }; return "/admin/avatars/" + strconv.FormatInt(a.ID, 10) }
 
 // The admin SPA calls the API cross-origin (SPA on :3010, API on :8080), so the
 // refresh cookie needs SameSite=None to ride along on fetch. SameSite=None
@@ -148,6 +159,58 @@ func (h *adminAuthHandler) me(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"admin": adminJSON(a)})
+}
+func (h *adminAuthHandler) updateProfile(c *gin.Context) {
+	var r updateAdminReq
+	if c.ShouldBindJSON(&r) != nil {
+		errJSON(c, 400, "validation_error", "ورودی نامعتبر است")
+		return
+	}
+	a, err := h.svc.UpdateProfile(c, c.GetInt64("adminID"), r.FirstName, r.LastName, r.Email, r.PhoneNumber, r.IsMale)
+	if err != nil {
+		errJSON(c, 400, "validation_error", "ورودی نامعتبر است")
+		return
+	}
+	c.JSON(200, gin.H{"admin": adminJSON(a)})
+}
+func (h *adminAuthHandler) uploadAvatar(c *gin.Context) {
+	f, err := c.FormFile("file")
+	if err != nil {
+		errJSON(c, 400, "validation_error", "تصویر نامعتبر است")
+		return
+	}
+	file, err := f.Open()
+	if err != nil {
+		errJSON(c, 400, "validation_error", "تصویر نامعتبر است")
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, (1<<20)+1))
+	if err != nil || h.svc.SetAvatar(c, c.GetInt64("adminID"), data, f.Header.Get("Content-Type")) != nil {
+		errJSON(c, 400, "validation_error", "تصویر باید PNG، JPEG یا WebP و حداکثر ۱ مگابایت باشد")
+		return
+	}
+	c.JSON(200, gin.H{"avatar_url": "/admin/avatars/" + strconv.FormatInt(c.GetInt64("adminID"), 10) + "?v=" + strconv.FormatInt(time.Now().UnixMilli(), 10)})
+}
+func (h *adminAuthHandler) deleteAvatar(c *gin.Context) {
+	if err := h.svc.ClearAvatar(c, c.GetInt64("adminID")); err != nil {
+		errJSON(c, 400, "validation_error", "خطا در حذف تصویر")
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+func (h *adminAuthHandler) avatarPublic(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	data, contentType, err := h.svc.GetAvatar(c, id)
+	if err != nil || contentType == "" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Data(200, contentType, data)
 }
 func (h *adminAuthHandler) setup(c *gin.Context) {
 	s, u, e := h.svc.Setup2FA(c, c.GetInt64("adminID"))

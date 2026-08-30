@@ -130,6 +130,10 @@ func (f *fakeRepo) ConsumePasswordReset(_ context.Context, id int64) error {
 	}
 	return nil
 }
+func (f *fakeRepo) SetAvatar(_ context.Context, id int64, _ []byte, contentType string) error { f.admins[id].AvatarType = contentType; return nil }
+func (f *fakeRepo) ClearAvatar(_ context.Context, id int64) error { f.admins[id].AvatarType = ""; return nil }
+func (f *fakeRepo) GetAvatar(_ context.Context, id int64) ([]byte, string, error) { a, ok := f.admins[id]; if !ok { return nil, "", errNotFound }; return nil, a.AvatarType, nil }
+func (f *fakeRepo) UpdateProfile(_ context.Context, id int64, firstName, lastName, email, phone string, isMale bool) (admin.Admin, error) { a, ok := f.admins[id]; if !ok { return admin.Admin{}, errNotFound }; a.FirstName, a.LastName, a.Email, a.PhoneNumber, a.IsMale = firstName, lastName, email, phone, isMale; return *a, nil }
 
 type fakeSMS struct{ lastPhone, lastMsg string }
 
