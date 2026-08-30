@@ -1,0 +1,6 @@
+{ "rewrites": [
+  { "source": "/businesses/:id", "destination": "/businesses/_/dashboard.html" },
+  { "source": "/businesses/:id/dashboard", "destination": "/businesses/_/dashboard.html" },
+  { "source": "/businesses/:id/members", "destination": "/businesses/_/members.html" },
+  { "source": "/businesses/:id/settings", "destination": "/businesses/_/settings.html" }
+] }
