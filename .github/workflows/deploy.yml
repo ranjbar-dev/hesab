@@ -38,7 +38,9 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
-    concurrency: { group: deploy-api, cancel-in-progress: false }
+    concurrency:
+      group: deploy-api
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +48,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Rsync repo to server
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e rsync -az --delete \
             --exclude '.git' --exclude '.github' --exclude 'node_modules' \
@@ -64,7 +67,8 @@ jobs:
             env.deploy "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/api/.env"
 
       - name: Build, restart, migrate
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s <<'EOF'
@@ -86,13 +90,18 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.admin == 'true' }}
     runs-on: ubuntu-latest
-    concurrency: { group: deploy-admin, cancel-in-progress: false }
+    concurrency:
+      group: deploy-admin
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: echo "$ENV_ADMIN" > admin/.env.production
-        env: { ENV_ADMIN: ${{ secrets.ENV_ADMIN }} }
+        with:
+          node-version: 22
+      - name: Write build env
+        env:
+          ENV_ADMIN: ${{ secrets.ENV_ADMIN }}
+        run: printf '%s\n' "$ENV_ADMIN" > admin/.env.production
       - run: npm ci
         working-directory: admin
       - run: npm run build
@@ -100,7 +109,8 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Deploy to /opt/hesab/admin
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e rsync -az --delete \
             -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
@@ -110,13 +120,18 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-latest
-    concurrency: { group: deploy-client, cancel-in-progress: false }
+    concurrency:
+      group: deploy-client
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: echo "$ENV_CLIENT" > client/.env.production
-        env: { ENV_CLIENT: ${{ secrets.ENV_CLIENT }} }
+        with:
+          node-version: 22
+      - name: Write build env
+        env:
+          ENV_CLIENT: ${{ secrets.ENV_CLIENT }}
+        run: printf '%s\n' "$ENV_CLIENT" > client/.env.production
       - run: npm ci
         working-directory: client
       - run: npm run build
@@ -124,7 +139,8 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Deploy to /opt/hesab/client
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e rsync -az --delete \
             -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
@@ -134,13 +150,16 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.nginx == 'true' }}
     runs-on: ubuntu-latest
-    concurrency: { group: deploy-nginx, cancel-in-progress: false }
+    concurrency:
+      group: deploy-nginx
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Sync configs to /etc/nginx/conf.d and reload
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           # conf.d becomes repo-managed: --delete removes any file there
           # that is not in deploy/nginx/ (handles edited / removed / changed).
