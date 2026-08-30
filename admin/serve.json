@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/users/:id", "destination": "/users/_.html" }
+    { "source": "/users/:id", "destination": "/users/_.html" },
+    { "source": "/businesses/:id", "destination": "/businesses/_.html" }
   ]
 }
