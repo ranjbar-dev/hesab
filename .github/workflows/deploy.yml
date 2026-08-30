@@ -9,6 +9,10 @@ on:
         description: 'migrate subcommand: up | "down 1" | "force N" | version'
         default: 'up'
         required: false
+      run_seed:
+        description: 'also run the DB seed (idempotent)'
+        type: boolean
+        default: false
 
 jobs:
   changes:
@@ -206,4 +210,29 @@ jobs:
             -path=/migrations \
             -database "postgres://$DB_USER:$DB_PASS@localhost:$DB_PORT/$DB_NAME?sslmode=disable" \
             ${MIGRATE_ARGS:-up}
+          EOF
+
+  # Manual-only: Actions tab -> deploy -> Run workflow. Never runs on push.
+  # Seed is idempotent (ON CONFLICT DO UPDATE) — safe to re-run.
+  seed:
+    needs: migrate              # always seed after migrations, never before
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_seed }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-api          # can't race a push deploy of the api
+      cancel-in-progress: false
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Run seed on prod
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s <<'EOF'
+          set -euo pipefail
+          cd /opt/hesab/api
+          docker compose build api
+          docker compose run --rm --entrypoint seed api
           EOF
