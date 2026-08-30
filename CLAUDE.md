@@ -113,6 +113,23 @@ related work.
   `<!-- BEGIN:nextjs-agent-rules -->` block to `admin/AGENTS.md` +
   `client/AGENTS.md`. Expected — commit these, don't fight them. IDE TS
   diagnostics may lag after this; `next build` (0 errors) is the source of truth.
+- **2026-08-30 — Delegating to Codex.** This repo is not a git repo, so Codex
+  needs `--skip-git-repo-check`. Invocation used:
+  `codex exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox
+  -C <repo> -o <outfile> "<prompt>"` where the prompt tells it to read a plan
+  file under `docs/plans/`. Runs unattended and needs network for
+  `go get` / `npm install`.
+- **2026-08-30 — RTK wraps some commands.** `docker logs <c>` comes back as a
+  summarised "Log Summary" — use `rtk proxy docker logs <c>` for raw lines.
+  `find` with `-not` / `-exec` fails under RTK ("does not support compound
+  predicates"); use plain `find` predicates or the Glob/Grep tools.
+- **2026-08-30 — User-facing messages use toasts.** `admin` and `client` both
+  depend on `sonner` (`^2.0.8`). Each `app/layout.tsx` renders one `<Toaster
+  dir="rtl" richColors position="top-center">` (admin `theme="dark"`, client
+  `theme="light"`, `toastOptions.style.fontFamily:"inherit"` for Vazirmatn).
+  For any error / warning / info / success feedback (login, forgot/reset
+  password, 2FA, etc.) call `toast.error|warning|info|success("پیام فارسی")` —
+  do NOT add inline `<p className="text-red-300">` message state to forms.
 
 ## Current state (2026-08-30)
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -9,9 +10,16 @@ export default function LoginPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error("ایمیل و رمز عبور را وارد کنید");
+      return;
+    }
     // ponytail: dummy submit, not wired to the API yet
     setLoading(true);
-    setTimeout(() => setLoading(false), 900);
+    setTimeout(() => {
+      setLoading(false);
+      toast.success("خوش آمدید");
+    }, 900);
   }
 
   return (

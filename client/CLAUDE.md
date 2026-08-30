@@ -15,4 +15,4 @@ tools. This file holds client-specific rules and learnings.
 ## Learnings
 
 <!-- LEARNINGS -->
-- _(none yet)_
+- **2026-08-30 — Toasts for feedback.** `sonner` `<Toaster>` lives in `app/layout.tsx` (`theme="light"`, `richColors`, `dir="rtl"`, `position="top-center"`). Show all user-facing error / warning / info / success messages (login, future forgot/reset password, etc.) via `toast.error|warning|info|success("پیام فارسی")`, not inline message state. Keep new pages on the same pattern.
