@@ -3,10 +3,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/app/users/page";
+import StatusBadge from "@/components/StatusBadge";
+import Select from "@/components/Select";
+import { useAdmin } from "@/components/Sidebar";
 import { isoToJalaliLabel } from "@/lib/jalali";
 import { deleteUser, getUser, resetPassword, setStatus, updateUser, type User } from "@/lib/users";
-import { useRequireAuth } from "@/lib/useRequireAuth";
 import { createBusiness, getUserBusinesses, removeBusinessMember, roleLabels, type Owned, type Joined } from "@/lib/businesses";
 
 const input = "h-11 w-full rounded-lg border border-brand-border bg-brand-bg px-3 focus-visible:ring-2 focus-visible:ring-brand-accent/30";
@@ -19,7 +20,7 @@ function Info({ l, children }: { l: string; children: React.ReactNode }) {
 export default function Detail() {
   const id = Number(useParams<{ id: string }>().id);
   const r = useRouter();
-  const { loading: auth } = useRequireAuth();
+  useAdmin();
   const [u, setU] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [p, setP] = useState("");
@@ -34,7 +35,7 @@ export default function Detail() {
     void loadBusinesses();
   }, [id, r]);
 
-  if (auth || loading) return <main className="grid min-h-screen place-items-center text-brand-muted">در حال بارگذاری…</main>;
+  if (loading) return <main className="grid min-h-screen place-items-center text-brand-muted">در حال بارگذاری…</main>;
   if (!u) return null;
 
   const edit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -89,9 +90,7 @@ export default function Detail() {
         <input name="last_name" defaultValue={u.last_name} required className={input} aria-label="نام خانوادگی" />
         <input name="email" type="email" defaultValue={u.email} className={input} aria-label="ایمیل" />
         <input name="national_id" defaultValue={u.national_id ?? ""} className={input} aria-label="کد ملی" />
-        <select name="account_type" defaultValue={u.account_type} className={input} aria-label="نوع حساب">
-          <option value="individual">حقیقی</option><option value="company">حقوقی</option>
-        </select>
+        <Select name="account_type" value={{ value: u.account_type, label: u.account_type === "company" ? "حقوقی" : "حقیقی" }} onChange={v => setU(current => current ? { ...current, account_type: (v?.value ?? current.account_type) as User["account_type"] } : current)} options={[{ value: "individual", label: "حقیقی" }, { value: "company", label: "حقوقی" }]} aria-label="نوع حساب" />
         <button className="h-11 cursor-pointer rounded-lg bg-brand-accent px-5 font-semibold text-brand-bg transition-colors duration-200 hover:bg-brand-accent-hover focus-visible:ring-2 focus-visible:ring-brand-accent/30">ذخیره تغییرات</button>
       </form>
 

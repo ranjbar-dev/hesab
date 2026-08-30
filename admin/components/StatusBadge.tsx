@@ -1,0 +1,2 @@
+import type { User } from "@/lib/users";
+export default function StatusBadge({ status }: { status: User["status"] }) { const on = status === "active"; return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${on ? "bg-emerald-500/15 text-emerald-400" : "bg-brand-border text-brand-muted"}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />{on ? "فعال" : "غیرفعال"}</span>; }

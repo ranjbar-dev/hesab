@@ -22,6 +22,7 @@ func NewRouter(healthSvc *health.Service, authSvc *adminauth.Service, tokens adm
 	h := &healthHandler{svc: healthSvc}
 	r.GET("/health", h.get)
 	a := &adminAuthHandler{svc: authSvc, tokens: tokens, cfg: cfg}
+	r.GET("/admin/avatars/:id", a.avatarPublic)
 	g := r.Group("/admin/auth")
 	{
 		g.POST("/login", a.login)
@@ -53,6 +54,9 @@ func NewRouter(healthSvc *health.Service, authSvc *adminauth.Service, tokens adm
 		p.PATCH("/businesses/:id/members/:userId", ba.changeRole)
 		p.DELETE("/businesses/:id/members/:userId", ba.removeMember)
 		p.GET("/me", a.me)
+		p.PATCH("/me", a.updateProfile)
+		p.POST("/me/avatar", a.uploadAvatar)
+		p.DELETE("/me/avatar", a.deleteAvatar)
 		p.POST("/2fa/setup", a.setup)
 		p.POST("/2fa/activate", a.activate)
 		p.POST("/2fa/disable", a.disable)

@@ -36,6 +36,10 @@ type Repository interface {
 	InsertPasswordReset(context.Context, int64, string, time.Time) error
 	LatestPasswordReset(context.Context, int64) (PasswordReset, error)
 	ConsumePasswordReset(context.Context, int64) error
+	SetAvatar(context.Context, int64, []byte, string) error
+	ClearAvatar(context.Context, int64) error
+	GetAvatar(context.Context, int64) ([]byte, string, error)
+	UpdateProfile(context.Context, int64, string, string, string, string, bool) (admin.Admin, error)
 }
 type TokenIssuer interface {
 	IssueAccess(int64) (string, int, error)
@@ -208,4 +212,23 @@ func (s *Service) Disable2FA(ctx context.Context, id int64, password string) err
 }
 func (s *Service) Me(ctx context.Context, id int64) (admin.Admin, error) {
 	return s.repo.AdminByID(ctx, id)
+}
+func (s *Service) SetAvatar(ctx context.Context, id int64, data []byte, contentType string) error {
+	if len(data) == 0 || len(data) > 1<<20 || (contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/webp") {
+		return admin.ErrInvalidAvatar
+	}
+	return s.repo.SetAvatar(ctx, id, data, contentType)
+}
+func (s *Service) ClearAvatar(ctx context.Context, id int64) error {
+	return s.repo.ClearAvatar(ctx, id)
+}
+func (s *Service) GetAvatar(ctx context.Context, id int64) ([]byte, string, error) {
+	return s.repo.GetAvatar(ctx, id)
+}
+func (s *Service) UpdateProfile(ctx context.Context, id int64, firstName, lastName, email, phone string, isMale bool) (admin.Admin, error) {
+	p, err := admin.NormalizePhone(phone)
+	if firstName == "" || lastName == "" || err != nil {
+		return admin.Admin{}, admin.ErrInvalidCredentials
+	}
+	return s.repo.UpdateProfile(ctx, id, firstName, lastName, email, p, isMale)
 }

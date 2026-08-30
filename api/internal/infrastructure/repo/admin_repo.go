@@ -15,7 +15,7 @@ type AdminRepo struct{ q *sqlc.Queries }
 
 func NewAdminRepo(q *sqlc.Queries) *AdminRepo { return &AdminRepo{q} }
 func adminFrom(a sqlc.Admin) admin.Admin {
-	return admin.Admin{ID: a.ID, FirstName: a.FirstName, LastName: a.LastName, Email: a.Email, PhoneNumber: a.PhoneNumber, IsMale: a.IsMale, PasswordHash: a.PasswordHash, TOTPSecret: a.TotpSecret, CreatedAt: a.CreatedAt.Time}
+	return admin.Admin{ID: a.ID, FirstName: a.FirstName, LastName: a.LastName, Email: a.Email, PhoneNumber: a.PhoneNumber, IsMale: a.IsMale, PasswordHash: a.PasswordHash, TOTPSecret: a.TotpSecret, AvatarType: a.AvatarType, CreatedAt: a.CreatedAt.Time}
 }
 func (r *AdminRepo) AdminByPhone(c context.Context, p string) (admin.Admin, error) {
 	a, e := r.q.GetAdminByPhone(c, p)
@@ -71,4 +71,18 @@ func (r *AdminRepo) LatestPasswordReset(c context.Context, id int64) (adminauth.
 }
 func (r *AdminRepo) ConsumePasswordReset(c context.Context, id int64) error {
 	return r.q.ConsumePasswordReset(c, id)
+}
+func (r *AdminRepo) SetAvatar(c context.Context, id int64, data []byte, contentType string) error {
+	return r.q.SetAdminAvatar(c, sqlc.SetAdminAvatarParams{ID: id, Avatar: data, AvatarType: contentType})
+}
+func (r *AdminRepo) ClearAvatar(c context.Context, id int64) error {
+	return r.q.ClearAdminAvatar(c, id)
+}
+func (r *AdminRepo) GetAvatar(c context.Context, id int64) ([]byte, string, error) {
+	v, e := r.q.GetAdminAvatar(c, id)
+	return v.Avatar, v.AvatarType, e
+}
+func (r *AdminRepo) UpdateProfile(c context.Context, id int64, firstName, lastName, email, phone string, isMale bool) (admin.Admin, error) {
+	v, e := r.q.UpdateAdminProfile(c, sqlc.UpdateAdminProfileParams{ID: id, FirstName: firstName, LastName: lastName, Email: email, PhoneNumber: phone, IsMale: isMale})
+	return adminFrom(v), e
 }

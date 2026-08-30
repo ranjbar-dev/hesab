@@ -18,6 +18,8 @@ type Admin struct {
 	PasswordHash string             `json:"password_hash"`
 	TotpSecret   string             `json:"totp_secret"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Avatar       []byte             `json:"avatar"`
+	AvatarType   string             `json:"avatar_type"`
 }
 
 type AdminPasswordReset struct {

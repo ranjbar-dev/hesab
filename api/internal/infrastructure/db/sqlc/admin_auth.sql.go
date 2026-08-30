@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearAdminAvatar = `-- name: ClearAdminAvatar :exec
+UPDATE admins SET avatar = NULL, avatar_type = '' WHERE id = $1
+`
+
+func (q *Queries) ClearAdminAvatar(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, clearAdminAvatar, id)
+	return err
+}
+
 const consumePasswordReset = `-- name: ConsumePasswordReset :exec
 UPDATE admin_password_resets SET consumed_at = now() WHERE id = $1
 `
@@ -22,7 +31,7 @@ func (q *Queries) ConsumePasswordReset(ctx context.Context, id int64) error {
 
 const createAdmin = `-- name: CreateAdmin :one
 INSERT INTO admins (first_name, last_name, email, phone_number, is_male, password_hash, totp_secret)
-VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at, avatar, avatar_type
 `
 
 type CreateAdminParams struct {
@@ -56,12 +65,30 @@ func (q *Queries) CreateAdmin(ctx context.Context, arg CreateAdminParams) (Admin
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.Avatar,
+		&i.AvatarType,
 	)
 	return i, err
 }
 
+const getAdminAvatar = `-- name: GetAdminAvatar :one
+SELECT avatar, avatar_type FROM admins WHERE id = $1
+`
+
+type GetAdminAvatarRow struct {
+	Avatar     []byte `json:"avatar"`
+	AvatarType string `json:"avatar_type"`
+}
+
+func (q *Queries) GetAdminAvatar(ctx context.Context, id int64) (GetAdminAvatarRow, error) {
+	row := q.db.QueryRow(ctx, getAdminAvatar, id)
+	var i GetAdminAvatarRow
+	err := row.Scan(&i.Avatar, &i.AvatarType)
+	return i, err
+}
+
 const getAdminByID = `-- name: GetAdminByID :one
-SELECT id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at FROM admins WHERE id = $1
+SELECT id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at, avatar, avatar_type FROM admins WHERE id = $1
 `
 
 func (q *Queries) GetAdminByID(ctx context.Context, id int64) (Admin, error) {
@@ -77,12 +104,14 @@ func (q *Queries) GetAdminByID(ctx context.Context, id int64) (Admin, error) {
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.Avatar,
+		&i.AvatarType,
 	)
 	return i, err
 }
 
 const getAdminByPhone = `-- name: GetAdminByPhone :one
-SELECT id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at FROM admins WHERE phone_number = $1
+SELECT id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at, avatar, avatar_type FROM admins WHERE phone_number = $1
 `
 
 func (q *Queries) GetAdminByPhone(ctx context.Context, phoneNumber string) (Admin, error) {
@@ -98,6 +127,8 @@ func (q *Queries) GetAdminByPhone(ctx context.Context, phoneNumber string) (Admi
 		&i.PasswordHash,
 		&i.TotpSecret,
 		&i.CreatedAt,
+		&i.Avatar,
+		&i.AvatarType,
 	)
 	return i, err
 }
@@ -213,6 +244,21 @@ func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) erro
 	return err
 }
 
+const setAdminAvatar = `-- name: SetAdminAvatar :exec
+UPDATE admins SET avatar = $2, avatar_type = $3 WHERE id = $1
+`
+
+type SetAdminAvatarParams struct {
+	ID         int64  `json:"id"`
+	Avatar     []byte `json:"avatar"`
+	AvatarType string `json:"avatar_type"`
+}
+
+func (q *Queries) SetAdminAvatar(ctx context.Context, arg SetAdminAvatarParams) error {
+	_, err := q.db.Exec(ctx, setAdminAvatar, arg.ID, arg.Avatar, arg.AvatarType)
+	return err
+}
+
 const setAdminTOTPSecret = `-- name: SetAdminTOTPSecret :exec
 UPDATE admins SET totp_secret = $2 WHERE id = $1
 `
@@ -239,4 +285,44 @@ type UpdateAdminPasswordParams struct {
 func (q *Queries) UpdateAdminPassword(ctx context.Context, arg UpdateAdminPasswordParams) error {
 	_, err := q.db.Exec(ctx, updateAdminPassword, arg.ID, arg.PasswordHash)
 	return err
+}
+
+const updateAdminProfile = `-- name: UpdateAdminProfile :one
+UPDATE admins SET first_name = $2, last_name = $3, email = $4, phone_number = $5, is_male = $6
+WHERE id = $1 RETURNING id, first_name, last_name, email, phone_number, is_male, password_hash, totp_secret, created_at, avatar, avatar_type
+`
+
+type UpdateAdminProfileParams struct {
+	ID          int64  `json:"id"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+	IsMale      bool   `json:"is_male"`
+}
+
+func (q *Queries) UpdateAdminProfile(ctx context.Context, arg UpdateAdminProfileParams) (Admin, error) {
+	row := q.db.QueryRow(ctx, updateAdminProfile,
+		arg.ID,
+		arg.FirstName,
+		arg.LastName,
+		arg.Email,
+		arg.PhoneNumber,
+		arg.IsMale,
+	)
+	var i Admin
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.IsMale,
+		&i.PasswordHash,
+		&i.TotpSecret,
+		&i.CreatedAt,
+		&i.Avatar,
+		&i.AvatarType,
+	)
+	return i, err
 }
