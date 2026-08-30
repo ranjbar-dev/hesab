@@ -14,7 +14,7 @@ type Config struct {
 	AccessTokenTTL, RefreshTokenTTL, PasswordResetTTL, TwoFAPendingTTL time.Duration
 	CORSOrigins                                                        []string
 	CookieSecure                                                       bool
-	CookieDomain, TOTPIssuer                                           string
+	CookieDomain, TOTPIssuer, ClientTOTPIssuer                         string
 }
 
 // Load reads configuration from environment variables, falling back to
@@ -26,7 +26,7 @@ func Load() Config {
 		JWTSecret:      getenv("JWT_SECRET", "dev-insecure-admin-secret-change-me"),
 		AccessTokenTTL: getdur("ACCESS_TOKEN_TTL", "15m"), RefreshTokenTTL: getdur("REFRESH_TOKEN_TTL", "720h"), PasswordResetTTL: getdur("PASSWORD_RESET_TTL", "5m"), TwoFAPendingTTL: getdur("TWOFA_PENDING_TTL", "5m"),
 		CORSOrigins:  strings.Split(getenv("CORS_ORIGINS", "http://localhost:3010,http://localhost:3020"), ","),
-		CookieSecure: getenv("COOKIE_SECURE", "true") == "true", CookieDomain: getenv("COOKIE_DOMAIN", ""), TOTPIssuer: getenv("TOTP_ISSUER", "Hesab Admin"),
+		CookieSecure: getenv("COOKIE_SECURE", "true") == "true", CookieDomain: getenv("COOKIE_DOMAIN", ""), TOTPIssuer: getenv("TOTP_ISSUER", "Hesab Admin"), ClientTOTPIssuer: getenv("CLIENT_TOTP_ISSUER", "Hesab"),
 	}
 }
 

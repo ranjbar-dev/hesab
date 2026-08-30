@@ -37,3 +37,32 @@ type AdminRefreshToken struct {
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
+
+type User struct {
+	ID           int64              `json:"id"`
+	FirstName    string             `json:"first_name"`
+	LastName     string             `json:"last_name"`
+	Email        string             `json:"email"`
+	PhoneNumber  string             `json:"phone_number"`
+	PasswordHash string             `json:"password_hash"`
+	TotpSecret   string             `json:"totp_secret"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type UserPasswordReset struct {
+	ID         int64              `json:"id"`
+	UserID     int64              `json:"user_id"`
+	CodeHash   string             `json:"code_hash"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	ConsumedAt pgtype.Timestamptz `json:"consumed_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type UserRefreshToken struct {
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}

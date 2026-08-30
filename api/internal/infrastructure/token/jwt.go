@@ -46,3 +46,12 @@ func (j JWT) parse(raw, want string) (int64, error) {
 }
 func (j JWT) ParseAccess(s string) (int64, error)  { return j.parse(s, "admin") }
 func (j JWT) ParsePending(s string) (int64, error) { return j.parse(s, "admin_2fa_pending") }
+func (j JWT) IssueClientAccess(id int64) (string, int, error) {
+	s, e := j.issue(id, "client", j.accessTTL)
+	return s, int(j.accessTTL.Seconds()), e
+}
+func (j JWT) IssueClientPending(id int64) (string, error) {
+	return j.issue(id, "client_2fa_pending", j.pendingTTL)
+}
+func (j JWT) ParseClientAccess(s string) (int64, error)  { return j.parse(s, "client") }
+func (j JWT) ParseClientPending(s string) (int64, error) { return j.parse(s, "client_2fa_pending") }

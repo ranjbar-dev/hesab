@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/gin-gonic/gin"
 	"hesab/api/internal/application/adminauth"
+	"hesab/api/internal/application/clientauth"
 	"net/http"
 	"strings"
 )
@@ -41,6 +42,22 @@ func AdminAuth(t adminauth.TokenIssuer) gin.HandlerFunc {
 			return
 		}
 		c.Set("adminID", id)
+		c.Next()
+	}
+}
+func ClientAuth(t clientauth.TokenIssuer) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		v := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
+		if v == c.GetHeader("Authorization") {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		id, e := t.ParseAccess(v)
+		if e != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		c.Set("userID", id)
 		c.Next()
 	}
 }
