@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      migrate_args:
+        description: 'migrate subcommand: up | "down 1" | "force N" | version'
+        default: 'up'
+        required: false
 
 jobs:
   changes:
@@ -168,3 +173,37 @@ jobs:
             deploy/nginx/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/etc/nginx/conf.d/"
           sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'sudo nginx -t && sudo systemctl reload nginx'
+
+  # Manual-only: Actions tab -> deploy -> Run workflow. Never runs on push.
+  migrate:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-api          # can't race a push deploy of the api
+      cancel-in-progress: false
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Run migrations on prod
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          MIGRATE_ARGS: ${{ inputs.migrate_args }}
+        run: |
+          sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "MIGRATE_ARGS='${MIGRATE_ARGS:-up}' bash -s" <<'EOF'
+          set -euo pipefail
+          cd /opt/hesab/api
+          DB_USER=$(grep -E '^POSTGRES_USER='     .env | cut -d= -f2-)
+          DB_PASS=$(grep -E '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)
+          DB_NAME=$(grep -E '^POSTGRES_DB='       .env | cut -d= -f2-)
+          DB_PORT=$(grep -E '^POSTGRES_PORT='     .env | cut -d= -f2- || true); DB_PORT=${DB_PORT:-5432}
+          # repo rsyncs under /opt/hesab/api/, so migrations sit at api/api/db/migration
+          docker run --rm --network host \
+            -v /opt/hesab/api/api/db/migration:/migrations \
+            migrate/migrate \
+            -path=/migrations \
+            -database "postgres://$DB_USER:$DB_PASS@localhost:$DB_PORT/$DB_NAME?sslmode=disable" \
+            ${MIGRATE_ARGS:-up}
+          EOF
