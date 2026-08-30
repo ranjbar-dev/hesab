@@ -106,6 +106,12 @@ related work.
   webfont.
 - **2026-08-30 — ui-ux-pro-max script on Windows.** Its `search.py` crashes on
   cp1252 consoles. Prefix commands with `export PYTHONIOENCODING=utf-8`.
+- **2026-08-30 — Windows console mangles UTF-8 in test payloads.** Persian sent
+  through `curl -d '{...}'` or printed from a `python -c`/heredoc lands as `???`
+  (cp1252), independent of the API — the API + Postgres are UTF-8 clean.
+  Verifying a Persian round-trip means checking it in `psql` inside the DB
+  container, or asserting a filter's match count, not reading the shell echo.
+  `PYTHONIOENCODING=utf-8` fixes Python stdout but not `curl`'s request body.
 - **2026-08-30 — Next 16 workspace root.** A `package-lock.json` in `C:\Users\root`
   makes Turbopack guess the wrong root. Both `next.config.ts` files pin
   `turbopack: { root: import.meta.dirname }`. Keep it.
@@ -125,11 +131,27 @@ related work.
   `C:\Users\root\Desktop\hesab-<slug>` (a sibling of the repo, NOT under
   `C:\Users\root`). Write the plan file *inside* that worktree — `Write`
   silently creates missing parent dirs, so a wrong path just makes a stray dir
-  containing only the plan and Codex reports the repo missing.
+  containing only the plan and Codex reports the repo missing. Codex takes the
+  cheap way around a hard constraint unless the plan blocks it: told to build a
+  `/users/$id` screen in a `output: "export"` SPA it shipped `/users/detail?id=`
+  (a query param) rather than a `[id]` route. Put the exact route shape AND the
+  workaround recipe in the plan (see the admin static-export dynamic-route
+  learning), then check the delegated output actually followed it.
+- **2026-08-30 — Check sibling worktrees before planning a shared-table feature.**
+  Multiple agents run this repo at once (`git worktree list`). Before planning
+  work that touches a shared table/domain, `cd` into each sibling worktree and
+  read its `git status` + any new `api/db/migration/*` / `api/query/*` — an
+  in-progress branch may already be creating the table you need. `feat/users-admin`
+  and `feat/client-auth` both needed `users`; had client-auth not merged first,
+  the parallel plan would have collided on migration `000002` and the `user`
+  domain package.
 - **2026-08-30 — RTK wraps some commands.** `docker logs <c>` comes back as a
   summarised "Log Summary" — use `rtk proxy docker logs <c>` for raw lines.
   `find` with `-not` / `-exec` fails under RTK ("does not support compound
   predicates"); use plain `find` predicates or the Glob/Grep tools.
+  `go test ./...` returns a `"Go test: N passed in M packages"` summary, not
+  per-test lines — use `rtk proxy go test ... -v` to see individual tests or a
+  failure's detail.
 - **2026-08-30 — User-facing messages use toasts.** `admin` and `client` both
   depend on `sonner` (`^2.0.8`). Each `app/layout.tsx` renders one `<Toaster
   dir="rtl" richColors position="top-center">` (admin `theme="dark"`, client
