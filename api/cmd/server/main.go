@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"hesab/api/internal/application/adminauth"
+	"hesab/api/internal/application/business"
+	"hesab/api/internal/application/businessadmin"
 	"hesab/api/internal/application/clientauth"
 	"hesab/api/internal/application/health"
 	"hesab/api/internal/application/usersadmin"
@@ -45,7 +47,10 @@ func main() {
 	clientTokens := clientTokenAdapter{tokens}
 	clientSvc := clientauth.NewService(repo.NewUserRepo(sqlc.New(pool)), clientTokens, sms.FakeSender{Log: log.Default()}, func() string { return sms.FixedCode }, time.Now, cfg)
 	usersAdminSvc := usersadmin.NewService(repo.NewUserAdminRepo(sqlc.New(pool)), sms.FakeSender{Log: log.Default()})
-	router := httpiface.NewRouter(health.NewService(pool), authSvc, tokens, usersAdminSvc, clientSvc, clientTokens, cfg)
+	q := sqlc.New(pool)
+	businessSvc := business.NewService(repo.NewBusinessRepo(q))
+	businessAdminSvc := businessadmin.NewService(repo.NewBusinessAdminRepo(q))
+	router := httpiface.NewRouter(health.NewService(pool), authSvc, tokens, usersAdminSvc, businessAdminSvc, businessSvc, clientSvc, clientTokens, cfg)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := router.Run(":" + cfg.Port); err != nil {

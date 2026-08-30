@@ -38,6 +38,33 @@ type AdminRefreshToken struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type Business struct {
+	ID          int64              `json:"id"`
+	Name        string             `json:"name"`
+	OwnerUserID int64              `json:"owner_user_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type BusinessInvite struct {
+	ID          int64              `json:"id"`
+	BusinessID  int64              `json:"business_id"`
+	UserID      int64              `json:"user_id"`
+	Role        string             `json:"role"`
+	InvitedBy   pgtype.Int8        `json:"invited_by"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	RespondedAt pgtype.Timestamptz `json:"responded_at"`
+}
+
+type BusinessMember struct {
+	ID         int64              `json:"id"`
+	BusinessID int64              `json:"business_id"`
+	UserID     int64              `json:"user_id"`
+	Role       string             `json:"role"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
 type User struct {
 	ID           int64              `json:"id"`
 	FirstName    string             `json:"first_name"`

@@ -38,4 +38,15 @@ func main() {
 		log.Fatal(e)
 	}
 	log.Printf("seeded user id=%d phone=9120000000", id)
+	var bizID int64
+	e = pool.QueryRow(ctx, `INSERT INTO businesses (name, owner_user_id)
+		SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM businesses WHERE owner_user_id = $2 AND name = $1 AND deleted_at IS NULL)
+		RETURNING id`, "کسب‌وکار نمونه", id).Scan(&bizID)
+	if e == nil {
+		_, e = pool.Exec(ctx, `INSERT INTO business_members (business_id, user_id, role) VALUES ($1, $2, 'owner') ON CONFLICT (business_id, user_id) DO NOTHING`, bizID, id)
+	}
+	if e != nil && e != pgx.ErrNoRows {
+		log.Fatal(e)
+	}
+	log.Printf("seeded business id=%d owner=%d", bizID, id)
 }
