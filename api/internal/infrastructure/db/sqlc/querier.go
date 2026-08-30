@@ -9,6 +9,14 @@ import (
 )
 
 type Querier interface {
+	AdminCountUsers(ctx context.Context, arg AdminCountUsersParams) (int64, error)
+	AdminCreateUser(ctx context.Context, arg AdminCreateUserParams) (User, error)
+	AdminGetUser(ctx context.Context, id int64) (User, error)
+	AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]User, error)
+	AdminSetUserPassword(ctx context.Context, arg AdminSetUserPasswordParams) error
+	AdminSetUserStatus(ctx context.Context, arg AdminSetUserStatusParams) (User, error)
+	AdminSoftDeleteUser(ctx context.Context, id int64) error
+	AdminUpdateUserProfile(ctx context.Context, arg AdminUpdateUserProfileParams) (User, error)
 	ConsumePasswordReset(ctx context.Context, id int64) error
 	ConsumeUserPasswordReset(ctx context.Context, id int64) error
 	CreateAdmin(ctx context.Context, arg CreateAdminParams) (Admin, error)

@@ -18,6 +18,8 @@ var (
 type User struct {
 	ID                                                                int64
 	FirstName, LastName, Email, PhoneNumber, PasswordHash, TOTPSecret string
+	NationalID, AccountType, Status                                   string
+	DeletedAt                                                         *time.Time
 	CreatedAt                                                         time.Time
 }
 

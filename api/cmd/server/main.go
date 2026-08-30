@@ -8,6 +8,7 @@ import (
 	"hesab/api/internal/application/adminauth"
 	"hesab/api/internal/application/clientauth"
 	"hesab/api/internal/application/health"
+	"hesab/api/internal/application/usersadmin"
 	"hesab/api/internal/config"
 	"hesab/api/internal/infrastructure/db"
 	"hesab/api/internal/infrastructure/db/sqlc"
@@ -43,7 +44,8 @@ func main() {
 	authSvc := adminauth.NewService(repo.NewAdminRepo(sqlc.New(pool)), tokens, sms.FakeSender{Log: log.Default()}, func() string { return sms.FixedCode }, time.Now, cfg) // TODO: real generator = crypto/rand 6-digit
 	clientTokens := clientTokenAdapter{tokens}
 	clientSvc := clientauth.NewService(repo.NewUserRepo(sqlc.New(pool)), clientTokens, sms.FakeSender{Log: log.Default()}, func() string { return sms.FixedCode }, time.Now, cfg)
-	router := httpiface.NewRouter(health.NewService(pool), authSvc, tokens, clientSvc, clientTokens, cfg)
+	usersAdminSvc := usersadmin.NewService(repo.NewUserAdminRepo(sqlc.New(pool)), sms.FakeSender{Log: log.Default()})
+	router := httpiface.NewRouter(health.NewService(pool), authSvc, tokens, usersAdminSvc, clientSvc, clientTokens, cfg)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := router.Run(":" + cfg.Port); err != nil {
