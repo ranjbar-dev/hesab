@@ -1,0 +1,151 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.f.outputs.api }}
+      admin: ${{ steps.f.outputs.admin }}
+      client: ${{ steps.f.outputs.client }}
+      nginx: ${{ steps.f.outputs.nginx }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'db/**'
+              - 'docker-compose.yml'
+              - '.github/workflows/deploy.yml'
+            admin:
+              - 'admin/**'
+              - '.github/workflows/deploy.yml'
+            client:
+              - 'client/**'
+              - '.github/workflows/deploy.yml'
+            nginx:
+              - 'deploy/nginx/**'
+              - '.github/workflows/deploy.yml'
+
+  api:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-api, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Rsync repo to server
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        run: |
+          sshpass -e rsync -az --delete \
+            --exclude '.git' --exclude '.github' --exclude 'node_modules' \
+            --exclude 'admin' --exclude 'client' --exclude '.env' \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/api/"
+
+      - name: Upload production .env
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          ENV_API: ${{ secrets.ENV_API }}
+        run: |
+          printf '%s\n' "$ENV_API" > env.deploy
+          sshpass -e scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            env.deploy "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/api/.env"
+
+      - name: Build, restart, migrate
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        run: |
+          sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s <<'EOF'
+          set -euo pipefail
+          cd /opt/hesab/api
+          docker compose up -d --build
+          DB_USER=$(grep -E '^POSTGRES_USER='     .env | cut -d= -f2-)
+          DB_PASS=$(grep -E '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)
+          DB_NAME=$(grep -E '^POSTGRES_DB='       .env | cut -d= -f2-)
+          DB_PORT=$(grep -E '^POSTGRES_PORT='     .env | cut -d= -f2- || true); DB_PORT=${DB_PORT:-5432}
+          docker run --rm --network host \
+            -v /opt/hesab/api/api/db/migration:/migrations \
+            migrate/migrate \
+            -path=/migrations \
+            -database "postgres://$DB_USER:$DB_PASS@localhost:$DB_PORT/$DB_NAME?sslmode=disable" up
+          EOF
+
+  admin:
+    needs: changes
+    if: ${{ needs.changes.outputs.admin == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-admin, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: echo "$ENV_ADMIN" > admin/.env.production
+        env: { ENV_ADMIN: ${{ secrets.ENV_ADMIN }} }
+      - run: npm ci
+        working-directory: admin
+      - run: npm run build
+        working-directory: admin
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Deploy to /opt/hesab/admin
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        run: |
+          sshpass -e rsync -az --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            admin/out/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/admin/"
+
+  client:
+    needs: changes
+    if: ${{ needs.changes.outputs.client == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-client, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: echo "$ENV_CLIENT" > client/.env.production
+        env: { ENV_CLIENT: ${{ secrets.ENV_CLIENT }} }
+      - run: npm ci
+        working-directory: client
+      - run: npm run build
+        working-directory: client
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Deploy to /opt/hesab/client
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        run: |
+          sshpass -e rsync -az --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            client/out/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/hesab/client/"
+
+  nginx:
+    needs: changes
+    if: ${{ needs.changes.outputs.nginx == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-nginx, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Sync configs to /etc/nginx/conf.d and reload
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        run: |
+          # conf.d becomes repo-managed: --delete removes any file there
+          # that is not in deploy/nginx/ (handles edited / removed / changed).
+          sshpass -e rsync -az --delete --rsync-path="sudo rsync" \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            deploy/nginx/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/etc/nginx/conf.d/"
+          sshpass -e ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'sudo nginx -t && sudo systemctl reload nginx'
